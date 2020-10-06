@@ -6,10 +6,9 @@ CLASS /cadaxo/cl_mds_api_ds DEFINITION
   PUBLIC SECTION.
     INTERFACES /cadaxo/if_mds_api_datasource.
 
-    CLASS-METHODS get_instance IMPORTING i_object_name     TYPE /cadaxo/mds_object_name
-                                         i_ds_classname    TYPE string
+    CLASS-METHODS get_instance IMPORTING i_sematic_key     TYPE /cadaxo/mds_ds_semkey
                                RETURNING VALUE(e_instance) TYPE REF TO /cadaxo/if_mds_api_datasource.
-    METHODS constructor IMPORTING i_object_name TYPE /cadaxo/mds_object_name.
+    METHODS constructor IMPORTING i_sematic_key TYPE /cadaxo/mds_ds_semkey.
 
   PROTECTED SECTION.
     TYPES: BEGIN OF ty_instance,
@@ -30,20 +29,27 @@ CLASS /cadaxo/cl_mds_api_ds IMPLEMENTATION.
 
   METHOD constructor.
 
+    me->/cadaxo/if_mds_api_datasource~header-semkey = i_sematic_key.
+    me->/cadaxo/if_mds_api_datasource~header-ds_id = /cadaxo/cl_mds_api=>build_object_id( me->/cadaxo/if_mds_api_datasource~header-semkey ).
+
+*** WIP !!!
+    DATA(buffer) = CORRESPONDING /cadaxo/mds_ds( me->/cadaxo/if_mds_api_datasource~header ).
+    MODIFY /cadaxo/mds_ds FROM BUFFER.
   ENDMETHOD.
 
   METHOD get_instance.
 
     DATA: ds_instance TYPE REF TO /cadaxo/if_mds_api_datasource.
 
-    IF NOT line_exists( instances[ name = i_object_name ] ).
+    IF NOT line_exists( instances[ name = i_sematic_key-name ] ).
 
-      CREATE OBJECT ds_instance TYPE (i_ds_classname) EXPORTING i_object_name = i_object_name.
+      DATA(ds_class_name) = '/CADAXO/CL_MDS_API_' && i_sematic_key-type.
+      CREATE OBJECT ds_instance TYPE (ds_class_name) EXPORTING i_sematic_key = i_sematic_key.
 
-      INSERT VALUE #( name     = i_object_name
+      INSERT VALUE #( name     = i_sematic_key-name
                       instance = ds_instance ) INTO TABLE instances ASSIGNING FIELD-SYMBOL(<instance>).
     ELSE.
-      ASSIGN instances[ name = i_object_name ] TO <instance>.
+      ASSIGN instances[ name = i_sematic_key-name ] TO <instance>.
     ENDIF.
 
     e_instance = <instance>-instance.

@@ -8,19 +8,29 @@ CLASS /cadaxo/cl_mds_api DEFINITION
 
     CLASS-METHODS get_instance RETURNING VALUE(e_api) TYPE REF TO /cadaxo/if_mds_api.
 
+    CLASS-METHODS class_constructor.
     CLASS-METHODS build_object_id IMPORTING i_ds_semkey TYPE /cadaxo/mds_ds_semkey
                                   RETURNING VALUE(e_id) TYPE /cadaxo/mds_ds_id.
   PROTECTED SECTION.
 
     CLASS-DATA instance TYPE REF TO /cadaxo/if_mds_api.
   PRIVATE SECTION.
+    CLASS-DATA convert_out TYPE REF TO cl_abap_conv_out_ce.
     METHODS get_ds_reader IMPORTING i_ds_semkey        TYPE /cadaxo/mds_ds_semkey
                           RETURNING VALUE(r_ds_reader) TYPE REF TO /cadaxo/if_mds_api_datasource.
+    CLASS-METHODS string_to_xstring IMPORTING i_semkey_string         TYPE string
+                                    RETURNING VALUE(r_semkey_xstring) TYPE xstring.
 
 ENDCLASS.
 
 
 CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
+
+  METHOD class_constructor.
+
+    convert_out = cl_abap_conv_out_ce=>create( encoding = 'UTF-8' ).
+
+  ENDMETHOD.
 
   METHOD get_instance.
 
@@ -29,6 +39,20 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
     ENDIF.
 
     e_api = instance.
+
+  ENDMETHOD.
+
+  METHOD /cadaxo/if_mds_api~get_datasources_by_id.
+
+    SELECT SINGLE type, name
+           FROM /cadaxo/mds_ds
+           WHERE ds_id = @i_ds_id
+           INTO @DATA(semkey).
+    IF sy-subrc <> 0.
+      MESSAGE '' TYPE 'X'.
+    ENDIF.
+
+    r_datasources = me->/cadaxo/if_mds_api~get_datasources_by_semkey( i_ds_semkey = semkey ).
 
   ENDMETHOD.
 
@@ -87,17 +111,31 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
   METHOD get_ds_reader.
 
-    r_ds_reader = /cadaxo/cl_mds_api_ds=>get_instance( i_object_name  = i_ds_semkey-name
-                                                       i_ds_classname = '/CADAXO/CL_MDS_API_' && i_ds_semkey-type ).
+    r_ds_reader = /cadaxo/cl_mds_api_ds=>get_instance( i_ds_semkey ).
 
   ENDMETHOD.
 
+  METHOD string_to_xstring.
+
+    TRY.
+
+        convert_out->convert( EXPORTING data   = i_semkey_string
+                              IMPORTING buffer = r_semkey_xstring ).
+
+      CATCH cx_parameter_invalid_range
+            cx_sy_codepage_converter_init
+            cx_sy_conversion_codepage
+            cx_parameter_invalid_type.
+    ENDTRY.
+
+  ENDMETHOD.
 
   METHOD build_object_id.
 
     TRY.
+
         cl_abap_hmac=>calculate_hmac_for_raw( EXPORTING if_key        = CONV #( '' )
-                                                        if_data       = CONV #( i_ds_semkey )
+                                                        if_data       = string_to_xstring( CONV #( i_ds_semkey ) )
                                               IMPORTING ef_hmacstring = DATA(hashstring) ).
 
         e_id = hashstring.
@@ -106,5 +144,6 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+
 
 ENDCLASS.

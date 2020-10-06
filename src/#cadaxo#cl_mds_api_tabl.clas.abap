@@ -4,7 +4,7 @@ CLASS /cadaxo/cl_mds_api_tabl DEFINITION INHERITING FROM /cadaxo/cl_mds_api_ds
 
   PUBLIC SECTION.
 
-    METHODS constructor IMPORTING i_object_name TYPE /cadaxo/mds_object_name.
+    METHODS constructor IMPORTING i_sematic_key TYPE /cadaxo/mds_ds_semkey.
     METHODS /cadaxo/if_mds_api_datasource~build_related_entities REDEFINITION.
 
 ENDCLASS.
@@ -14,30 +14,27 @@ CLASS /cadaxo/cl_mds_api_tabl IMPLEMENTATION.
 
   METHOD constructor.
 
-    super->constructor( i_object_name = i_object_name ).
+    super->constructor( i_sematic_key ).
 
     SELECT SINGLE head~tabname  AS name,
-                  head~as4user AS changed_by
+                  head~as4user AS changed_by,
 *                  head~chgdate as changed_at,
-*                  text~ddtext  AS description
+                  text~ddtext  AS description
                   FROM dd02l AS head
-*                  LEFT OUTER JOIN dd02bt AS text
-*                    ON  text~strucobjn = head~strucobjn
-*                    AND text~as4local  = head~as4local
+                  LEFT OUTER JOIN dd02t AS text
+                    ON  text~tabname  = head~tabname
+                    AND text~as4local = head~as4local
                   INTO CORRESPONDING FIELDS OF @me->/cadaxo/if_mds_api_datasource~header
-                  WHERE head~tabname  = @i_object_name
+                  WHERE head~tabname  = @i_sematic_key-name
                     AND head~as4local = @version-active.
     IF sy-subrc <> 0.
       MESSAGE '' TYPE 'X'.
     ENDIF.
 
-    me->/cadaxo/if_mds_api_datasource~header-type = /cadaxo/if_mds_api_datasource=>types-table.
-    me->/cadaxo/if_mds_api_datasource~header-ds_id = /cadaxo/cl_mds_api=>build_object_id( me->/cadaxo/if_mds_api_datasource~header-semkey ).
-
-    APPEND VALUE #( to            = me->/cadaxo/if_mds_api_datasource~header-ds_id
-                    semkey        = me->/cadaxo/if_mds_api_datasource~header-semkey
-                    description   = me->/cadaxo/if_mds_api_datasource~header-description
-                    relation_type = 'MAIN' ) TO me->/cadaxo/if_mds_api_datasource~relations.
+*    APPEND VALUE #( to            = me->/cadaxo/if_mds_api_datasource~header-ds_id
+*                    semkey        = me->/cadaxo/if_mds_api_datasource~header-semkey
+*                    description   = me->/cadaxo/if_mds_api_datasource~header-description
+*                    relation_type = 'MAIN' ) TO me->/cadaxo/if_mds_api_datasource~relations.
 
   ENDMETHOD.
 

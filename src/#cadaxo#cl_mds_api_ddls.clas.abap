@@ -4,7 +4,7 @@ CLASS /cadaxo/cl_mds_api_ddls DEFINITION INHERITING FROM /cadaxo/cl_mds_api_ds
 
   PUBLIC SECTION.
 
-    METHODS constructor IMPORTING i_object_name TYPE /cadaxo/mds_object_name.
+    METHODS constructor IMPORTING i_sematic_key TYPE /cadaxo/mds_ds_semkey.
     METHODS /cadaxo/if_mds_api_datasource~build_related_entities REDEFINITION.
 
 ENDCLASS.
@@ -14,7 +14,7 @@ CLASS /cadaxo/cl_mds_api_ddls IMPLEMENTATION.
 
   METHOD constructor.
 
-    super->constructor( i_object_name = i_object_name ).
+    super->constructor( i_sematic_key ).
 
     SELECT SINGLE head~strucobjn AS name,
                   head~chguser AS changed_by,
@@ -25,15 +25,12 @@ CLASS /cadaxo/cl_mds_api_ddls IMPLEMENTATION.
                     ON  text~strucobjn = head~strucobjn
                     AND text~as4local  = head~as4local
                   INTO CORRESPONDING FIELDS OF @me->/cadaxo/if_mds_api_datasource~header
-                  WHERE head~strucobjn = @i_object_name
+                  WHERE head~strucobjn = @i_sematic_key-name
                     AND head~as4local  = @version-active.
     IF sy-subrc <> 0.
       MESSAGE '' TYPE 'X'.
     ENDIF.
 
-
-    me->/cadaxo/if_mds_api_datasource~header-type = /cadaxo/if_mds_api_datasource=>types-datadefinition.
-    me->/cadaxo/if_mds_api_datasource~header-ds_id = /cadaxo/cl_mds_api=>build_object_id( me->/cadaxo/if_mds_api_datasource~header-semkey ).
 
 *    APPEND VALUE #( to          = me->/cadaxo/if_mds_api_datasource~header-ds_id
 *                    object_type = me->/cadaxo/if_mds_api_datasource~header-type

@@ -23,5 +23,6 @@ INTERFACE /cadaxo/if_mds_api
 
   METHODS get_datasources_by_semkey IMPORTING i_ds_semkey          TYPE /cadaxo/mds_ds_semkey
                                     RETURNING VALUE(r_datasources) TYPE ty_datasources.
-
+  METHODS get_datasources_by_id IMPORTING i_ds_id              TYPE /cadaxo/mds_ds_id
+                                RETURNING VALUE(r_datasources) TYPE ty_datasources.
 ENDINTERFACE.
