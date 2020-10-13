@@ -5,7 +5,7 @@
    <VSEOCLASS>
     <CLSNAME>/CADAXO/CL_MDS_API_DDLS</CLSNAME>
     <LANGU>E</LANGU>
-    <DESCRIPT>yvc</DESCRIPT>
+    <DESCRIPT>Cadaxo Managed Data Services: CDS Datasource</DESCRIPT>
     <STATE>1</STATE>
     <CLSCCINCL>X</CLSCCINCL>
     <FIXPT>X</FIXPT>

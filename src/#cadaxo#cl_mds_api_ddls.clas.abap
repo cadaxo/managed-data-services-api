@@ -6,39 +6,15 @@ CLASS /cadaxo/cl_mds_api_ddls DEFINITION INHERITING FROM /cadaxo/cl_mds_api_ds
 
     METHODS constructor IMPORTING i_sematic_key TYPE /cadaxo/mds_ds_semkey.
     METHODS /cadaxo/if_mds_api_datasource~build_related_entities REDEFINITION.
+    METHODS /cadaxo/if_mds_api_datasource~get_fields REDEFINITION.
+    METHODS /cadaxo/if_mds_api_datasource~get_parameters REDEFINITION.
+    METHODS /cadaxo/if_mds_api_datasource~get_annotations REDEFINITION.
 
 ENDCLASS.
 
 
+
 CLASS /cadaxo/cl_mds_api_ddls IMPLEMENTATION.
-
-  METHOD constructor.
-
-    super->constructor( i_sematic_key ).
-
-    SELECT SINGLE head~strucobjn AS name,
-                  head~chguser AS changed_by,
-*                  head~chgdate as changed_at,
-                  text~ddtext  AS description
-                  FROM dd02b AS head
-                  LEFT OUTER JOIN dd02bt AS text
-                    ON  text~strucobjn = head~strucobjn
-                    AND text~as4local  = head~as4local
-                  INTO CORRESPONDING FIELDS OF @me->/cadaxo/if_mds_api_datasource~header
-                  WHERE head~strucobjn = @i_sematic_key-name
-                    AND head~as4local  = @version-active.
-    IF sy-subrc <> 0.
-      MESSAGE '' TYPE 'X'.
-    ENDIF.
-
-
-*    APPEND VALUE #( to          = me->/cadaxo/if_mds_api_datasource~header-ds_id
-*                    object_type = me->/cadaxo/if_mds_api_datasource~header-type
-*                    object_name = me->/cadaxo/if_mds_api_datasource~header-name
-*                    description = me->/cadaxo/if_mds_api_datasource~header-description
-*                    type        = 'MAIN' ) TO me->/cadaxo/if_mds_api_datasource~relations.
-
-  ENDMETHOD.
 
 
   METHOD /cadaxo/if_mds_api_datasource~build_related_entities.
@@ -57,15 +33,9 @@ CLASS /cadaxo/cl_mds_api_ddls IMPLEMENTATION.
 *      WHERE typename = @me->/cadaxo/if_mds_api_datasource~object_name
 *        AND state    = @version-active.
 
-* get db view
-    SELECT SINGLE *
-       FROM dd02bnd
-       INTO @DATA(stob_nodes)
-        WHERE strucobjn = @me->/cadaxo/if_mds_api_datasource~header-name
-          AND as4local  = @version-active.
 
 * get associations
-    SELECT *
+    SELECT associationname, typekind_t, assorigin, strucobjn_t, card_min, card_max
       FROM dd08b
       INTO TABLE @DATA(stob_associations)
       WHERE strucobjn = @me->/cadaxo/if_mds_api_datasource~header-name
@@ -73,10 +43,12 @@ CLASS /cadaxo/cl_mds_api_ddls IMPLEMENTATION.
 
     LOOP AT stob_associations ASSIGNING FIELD-SYMBOL(<stob_association>).
 
-      APPEND VALUE #( to            = 'GET_ID'
-                      type          = SWITCH #( <stob_association>-typekind_t WHEN 'T' THEN 'TABL'
-                                                                              WHEN 'B' THEN 'DDLS' )
-                      name          = <stob_association>-strucobjn_t
+      APPEND VALUE #( link_id       = 'GET_ID'
+                      object_id1    = me->/cadaxo/if_mds_api_datasource~header-ds_id
+                      object_id2    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey( type = SWITCH #( <stob_association>-typekind_t
+                                                                                                                            WHEN 'T' THEN /cadaxo/if_mds_api_datasource~types-table
+                                                                                                                            WHEN 'B' THEN  /cadaxo/if_mds_api_datasource~types-datadefinition )
+                                                                                                        name = <stob_association>-strucobjn_t ) )
                       description   = <stob_association>-associationname
                       card_min      = <stob_association>-card_min
                       card_max      = <stob_association>-card_max
@@ -86,17 +58,18 @@ CLASS /cadaxo/cl_mds_api_ddls IMPLEMENTATION.
     ENDLOOP.
 
 
-    SELECT *
+    SELECT tabname
            FROM dd26s
-           WHERE viewname = @stob_nodes-dbtabname
+           WHERE viewname = @/cadaxo/if_mds_api_datasource~header-sqlviewname
              AND as4local = @version-active
            INTO TABLE @DATA(base_tables).
 
     LOOP AT base_tables ASSIGNING FIELD-SYMBOL(<base_table>).
 
-      APPEND VALUE #( to            = 'GET_ID'
-                      type          = 'TABL'
-                      name          = <base_table>-tabname
+      APPEND VALUE #( link_id       = 'GET_ID'
+                      object_id1    = me->/cadaxo/if_mds_api_datasource~header-ds_id
+                      object_id2    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey(  type = /cadaxo/if_mds_api_datasource~types-table
+                                                                                                         name = <base_table>-tabname ) )
                       description   = 'as select from'
                       relation_type = 'BASE' ) TO me->/cadaxo/if_mds_api_datasource~relations.
 
@@ -145,9 +118,10 @@ CLASS /cadaxo/cl_mds_api_ddls IMPLEMENTATION.
 
     LOOP AT stob_append_headers ASSIGNING FIELD-SYMBOL(<stob_append_header>).
 
-      APPEND VALUE #( to            = 'GET_ID'
-                      type          = 'DDLS'
-                      name          = <stob_append_header>-strucobjn
+      APPEND VALUE #( link_id       = 'GET_ID'
+                      object_id1    = me->/cadaxo/if_mds_api_datasource~header-ds_id
+                      object_id2    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey(  type = /cadaxo/if_mds_api_datasource~types-datadefinition
+                                                                                                         name = <stob_append_header>-strucobjn ) )
                       description   = 'enhanced'
                       card_min      = 1
                       card_max      = 1
@@ -155,10 +129,130 @@ CLASS /cadaxo/cl_mds_api_ddls IMPLEMENTATION.
 
     ENDLOOP.
 
-    LOOP AT me->/cadaxo/if_mds_api_datasource~relations ASSIGNING FIELD-SYMBOL(<relatiion>) WHERE to = 'GET_ID'.
-      <relatiion>-to = /cadaxo/cl_mds_api=>build_object_id( <relatiion>-semkey ).
+
+* is base table of
+    SELECT b~strucobjn
+           FROM dd26s AS a
+           INNER JOIN dd02bnd AS b
+                 ON b~dbtabname = a~viewname
+           WHERE a~tabname  = @/cadaxo/if_mds_api_datasource~header-sqlviewname
+             AND b~as4local = @version-active
+           INTO TABLE @DATA(table_sources).
+    SELECT strucobjn
+      FROM dd08b
+      APPENDING TABLE @table_sources
+      WHERE strucobjn_t = @me->/cadaxo/if_mds_api_datasource~header-name
+        AND as4local  = @version-active.
+    LOOP AT table_sources ASSIGNING FIELD-SYMBOL(<table_source>).
+
+      APPEND VALUE #( link_id       = 'GET_ID'
+                      object_id1    = me->/cadaxo/if_mds_api_datasource~header-ds_id
+                      object_id2    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey(  type = /cadaxo/if_mds_api_datasource~types-datadefinition
+                                                                                                         name = <table_source>-strucobjn ) )
+                      description   = 'is used in'
+                      relation_type = 'ISUSED' ) TO me->/cadaxo/if_mds_api_datasource~relations.
+
+    ENDLOOP.
+
+
+    LOOP AT me->/cadaxo/if_mds_api_datasource~relations ASSIGNING FIELD-SYMBOL(<relation>) WHERE link_id = 'GET_ID'.
+      <relation>-link_id = /cadaxo/cl_mds_api=>build_object_id( <relation>-semkey ).
+    ENDLOOP.
+
+*data(save) = me->/cadaxo/if_mds_api_datasource~relations.
+*    data(before) = lines( me->/cadaxo/if_mds_api_datasource~relations ).
+*    sort me->/cadaxo/if_mds_api_datasource~relations by link_id.
+*    delete ADJACENT DUPLICATES FROM me->/cadaxo/if_mds_api_datasource~relations comparing link_id.
+*    data(after) = lines( me->/cadaxo/if_mds_api_datasource~relations ).
+*if before <> after.
+*data(diff) = before - after.
+*endif.
+  ENDMETHOD.
+
+
+  METHOD /cadaxo/if_mds_api_datasource~get_annotations.
+
+    SELECT name AS annotation, position, value
+         FROM ddheadanno
+         WHERE strucobjn = @me->/cadaxo/if_mds_api_datasource~header-name
+         ORDER BY position
+         into table @DATA(annotations).
+
+    LOOP AT annotations ASSIGNING FIELD-SYMBOL(<annotation>).
+      APPEND VALUE #( annotation_id    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_an_semkey( object_id  = me->/cadaxo/if_mds_api_datasource~header-ds_id
+                                                                                                           annotation = <annotation>-annotation ) )
+                      object_id   = me->/cadaxo/if_mds_api_datasource~header-ds_id
+                      annotation  = <annotation>-annotation
+                      value       = <annotation>-value
+                      position    = <annotation>-position ) TO r_annotations.
+    ENDLOOP.
+
+*        SELECT lfieldname AS fieldname, name, position, value
+*               FROM ddfieldanno
+*               WHERE strucobjn = @name
+*               ORDER BY position
+*               APPENDING CORRESPONDING FIELDS OF TABLE @e_annotations.
+  ENDMETHOD.
+
+
+  METHOD /cadaxo/if_mds_api_datasource~get_fields.
+
+    SELECT cdsfields~fieldname AS field_name, cdsfields~fieldname_raw AS field_alias, cdsfields~position,
+           sqlviewfields~tabname AS base_tabable, sqlviewfields~fieldname AS base_field_name
+           FROM dd03nd AS cdsfields
+           INNER JOIN dd27s AS sqlviewfields
+                 ON  sqlviewfields~viewname  = @me->/cadaxo/if_mds_api_datasource~header-sqlviewname
+                 AND sqlviewfields~viewfield = cdsfields~fieldname
+                 AND sqlviewfields~as4local  = cdsfields~as4local
+           WHERE strucobjn = @me->/cadaxo/if_mds_api_datasource~header-name
+             AND cdsfields~as4local  = @/cadaxo/cl_mds_api_ds=>version-active
+           ORDER BY position
+           into table @DATA(cds_fields).
+
+    LOOP AT cds_fields ASSIGNING FIELD-SYMBOL(<cds_field>).
+
+      DATA(field) = /cadaxo/cl_mds_api_field=>get_instance( i_field_id =  /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_fd_semkey( ds_id      = me->/cadaxo/if_mds_api_datasource~header-ds_id
+                                                                                                                                            field_name = <cds_field>-field_name ) )
+                                                            i_data = CORRESPONDING #( <cds_field> ) ).
+
+      APPEND VALUE #( field_id = field->get_id( )
+                      api      = field ) TO r_fields.
+
     ENDLOOP.
 
   ENDMETHOD.
 
+
+  METHOD /cadaxo/if_mds_api_datasource~get_parameters.
+
+  ENDMETHOD.
+
+
+  METHOD constructor.
+
+    super->constructor( i_sematic_key ).
+
+    SELECT SINGLE head~strucobjn AS name,
+                  head~chguser AS changed_by,
+*                  head~chgdate as changed_at,
+                  text~ddtext  AS description,
+                  dbtabname AS sqlviewname
+           FROM dd02b AS head
+           INNER JOIN dd02bnd AS sqlview
+                 ON  sqlview~strucobjn = head~strucobjn
+                 AND sqlview~as4local  = head~as4local
+           LEFT OUTER JOIN dd02bt AS text
+                ON  text~strucobjn = head~strucobjn
+                AND text~as4local  = head~as4local
+           INTO CORRESPONDING FIELDS OF @me->/cadaxo/if_mds_api_datasource~header
+           WHERE head~strucobjn = @i_sematic_key-name
+             AND head~as4local  = @version-active.
+    IF sy-subrc <> 0.
+      MESSAGE '' TYPE 'X'.
+    ENDIF.
+
+*          <node>-http_link = |/sap/bc/adt/ddic/ddl/sources/{ <node>-name }/source/main?version=active&sap-client={ sy-mandt }|.
+*          <node>-adt_link = |adt://{ sy-sysid }/sap/bc/adt/ddic/ddl/sources/{ <node>-name }|.
+
+  ENDMETHOD.
 ENDCLASS.

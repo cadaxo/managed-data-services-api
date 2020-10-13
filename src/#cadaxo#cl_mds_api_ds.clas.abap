@@ -6,16 +6,16 @@ CLASS /cadaxo/cl_mds_api_ds DEFINITION
   PUBLIC SECTION.
     INTERFACES /cadaxo/if_mds_api_datasource.
 
-    CLASS-METHODS get_instance IMPORTING i_sematic_key     TYPE /cadaxo/mds_ds_semkey
+    CLASS-METHODS get_instance IMPORTING i_ds_id           TYPE /cadaxo/mds_ds_id
                                RETURNING VALUE(e_instance) TYPE REF TO /cadaxo/if_mds_api_datasource.
     METHODS constructor IMPORTING i_sematic_key TYPE /cadaxo/mds_ds_semkey.
 
   PROTECTED SECTION.
     TYPES: BEGIN OF ty_instance,
-             name     TYPE /cadaxo/mds_object_name,
+             ds_id    TYPE /cadaxo/mds_ds_id,
              instance TYPE REF TO /cadaxo/if_mds_api_datasource,
            END OF ty_instance,
-           ty_instances TYPE SORTED TABLE OF ty_instance WITH UNIQUE KEY name.
+           ty_instances TYPE SORTED TABLE OF ty_instance WITH UNIQUE KEY ds_id.
     CLASS-DATA instances TYPE ty_instances.
 
     CONSTANTS: BEGIN OF version,
@@ -25,34 +25,31 @@ CLASS /cadaxo/cl_mds_api_ds DEFINITION
 ENDCLASS.
 
 
-CLASS /cadaxo/cl_mds_api_ds IMPLEMENTATION.
 
-  METHOD constructor.
+CLASS /CADAXO/CL_MDS_API_DS IMPLEMENTATION.
 
-    me->/cadaxo/if_mds_api_datasource~header-semkey = i_sematic_key.
-    me->/cadaxo/if_mds_api_datasource~header-ds_id = /cadaxo/cl_mds_api=>build_object_id( me->/cadaxo/if_mds_api_datasource~header-semkey ).
 
-*** WIP !!!
-    DATA(buffer) = CORRESPONDING /cadaxo/mds_ds( me->/cadaxo/if_mds_api_datasource~header ).
-    MODIFY /cadaxo/mds_ds FROM BUFFER.
+  METHOD /cadaxo/if_mds_api_datasource~build_related_entities.
+
   ENDMETHOD.
 
-  METHOD get_instance.
 
-    DATA: ds_instance TYPE REF TO /cadaxo/if_mds_api_datasource.
+  METHOD /cadaxo/if_mds_api_datasource~get_annotations.
 
-    IF NOT line_exists( instances[ name = i_sematic_key-name ] ).
+  ENDMETHOD.
 
-      DATA(ds_class_name) = '/CADAXO/CL_MDS_API_' && i_sematic_key-type.
-      CREATE OBJECT ds_instance TYPE (ds_class_name) EXPORTING i_sematic_key = i_sematic_key.
 
-      INSERT VALUE #( name     = i_sematic_key-name
-                      instance = ds_instance ) INTO TABLE instances ASSIGNING FIELD-SYMBOL(<instance>).
-    ELSE.
-      ASSIGN instances[ name = i_sematic_key-name ] TO <instance>.
-    ENDIF.
+  METHOD /cadaxo/if_mds_api_datasource~get_datasource.
+    r_datasource = me->/cadaxo/if_mds_api_datasource~header.
+  ENDMETHOD.
 
-    e_instance = <instance>-instance.
+
+  METHOD /cadaxo/if_mds_api_datasource~get_fields.
+
+  ENDMETHOD.
+
+
+  METHOD /cadaxo/if_mds_api_datasource~get_parameters.
 
   ENDMETHOD.
 
@@ -61,12 +58,39 @@ CLASS /cadaxo/cl_mds_api_ds IMPLEMENTATION.
     r_relations = me->/cadaxo/if_mds_api_datasource~relations.
   ENDMETHOD.
 
-  METHOD /cadaxo/if_mds_api_datasource~get_datasource.
-    r_datasource = me->/cadaxo/if_mds_api_datasource~header.
+
+  METHOD constructor.
+
+    me->/cadaxo/if_mds_api_datasource~header-semkey = i_sematic_key.
+    me->/cadaxo/if_mds_api_datasource~header-ds_id = /cadaxo/cl_mds_api=>build_object_id( me->/cadaxo/if_mds_api_datasource~header-semkey ).
+
   ENDMETHOD.
 
-  METHOD /cadaxo/if_mds_api_datasource~build_related_entities.
+
+  METHOD get_instance.
+
+    DATA: ds_instance TYPE REF TO /cadaxo/if_mds_api_datasource.
+
+    IF NOT line_exists( instances[ ds_id = i_ds_id ] ).
+
+    SELECT SINGLE type, name
+           FROM /cadaxo/mds_ds
+           WHERE ds_id = @i_ds_id
+           INTO @DATA(semkey).
+    IF sy-subrc <> 0.
+      MESSAGE '' TYPE 'X'.
+    ENDIF.
+
+      DATA(ds_class_name) = '/CADAXO/CL_MDS_API_' && semkey-type.
+      CREATE OBJECT ds_instance TYPE (ds_class_name) EXPORTING i_sematic_key = semkey.
+
+      INSERT VALUE #( ds_id    = i_ds_id
+                      instance = ds_instance ) INTO TABLE instances ASSIGNING FIELD-SYMBOL(<instance>).
+    ELSE.
+      ASSIGN instances[ ds_id = i_ds_id ] TO <instance>.
+    ENDIF.
+
+    e_instance = <instance>-instance.
 
   ENDMETHOD.
-
 ENDCLASS.

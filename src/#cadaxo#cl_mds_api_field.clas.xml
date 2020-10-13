@@ -3,9 +3,9 @@
  <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
   <asx:values>
    <VSEOCLASS>
-    <CLSNAME>/CADAXO/CL_MDS_API_DS</CLSNAME>
+    <CLSNAME>/CADAXO/CL_MDS_API_FIELD</CLSNAME>
     <LANGU>E</LANGU>
-    <DESCRIPT>Managed Data Services: Datasources Base Class</DESCRIPT>
+    <DESCRIPT>Managed Data Services: Field API</DESCRIPT>
     <STATE>1</STATE>
     <CLSCCINCL>X</CLSCCINCL>
     <FIXPT>X</FIXPT>
