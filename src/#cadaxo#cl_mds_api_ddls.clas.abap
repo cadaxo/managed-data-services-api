@@ -9,7 +9,7 @@ CLASS /cadaxo/cl_mds_api_ddls DEFINITION INHERITING FROM /cadaxo/cl_mds_api_ds
     METHODS /cadaxo/if_mds_api_datasource~get_fields REDEFINITION.
     METHODS /cadaxo/if_mds_api_datasource~get_parameters REDEFINITION.
     METHODS /cadaxo/if_mds_api_datasource~get_annotations REDEFINITION.
-
+    METHODS /cadaxo/if_mds_api_datasource~get_action_links REDEFINITION.
 ENDCLASS.
 
 
@@ -251,8 +251,10 @@ CLASS /cadaxo/cl_mds_api_ddls IMPLEMENTATION.
       MESSAGE '' TYPE 'X'.
     ENDIF.
 
-*          <node>-http_link = |/sap/bc/adt/ddic/ddl/sources/{ <node>-name }/source/main?version=active&sap-client={ sy-mandt }|.
-*          <node>-adt_link = |adt://{ sy-sysid }/sap/bc/adt/ddic/ddl/sources/{ <node>-name }|.
+  ENDMETHOD.
 
+  METHOD /cadaxo/if_mds_api_datasource~get_action_links.
+    r_links_action-display = |/sap/bc/adt/ddic/ddl/sources/{ me->/cadaxo/if_mds_api_datasource~header-name }/source/main?version=active&sap-client={ sy-mandt }|.
+    r_links_action-edit = |adt://{ sy-sysid }/sap/bc/adt/ddic/ddl/sources/{ me->/cadaxo/if_mds_api_datasource~header-name }|.
   ENDMETHOD.
 ENDCLASS.

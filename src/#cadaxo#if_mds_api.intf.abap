@@ -47,8 +47,15 @@ INTERFACE /cadaxo/if_mds_api
     changed_at  TYPE timestampl,
     description TYPE as4text,
     sqlviewname TYPE tabname,
+    api         TYPE REF TO /cadaxo/if_mds_api_datasource,
     END OF ty_datasource,
     ty_datasources TYPE STANDARD TABLE OF ty_datasource WITH DEFAULT KEY.
+
+
+  TYPES: BEGIN OF ty_action_link,
+           display TYPE string,
+           edit    TYPE string,
+         END OF ty_action_link.
 
   METHODS get_datasources_by_semkey IMPORTING i_ds_semkey          TYPE /cadaxo/mds_ds_semkey
                                               i_read_depth         TYPE i

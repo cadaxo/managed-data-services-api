@@ -7,6 +7,7 @@ CLASS /cadaxo/cl_mds_api_tabl DEFINITION INHERITING FROM /cadaxo/cl_mds_api_ds
     METHODS constructor IMPORTING i_sematic_key TYPE /cadaxo/mds_ds_semkey.
     METHODS /cadaxo/if_mds_api_datasource~build_related_entities REDEFINITION.
     METHODS /cadaxo/if_mds_api_datasource~get_fields REDEFINITION.
+    METHODS /cadaxo/if_mds_api_datasource~get_action_links REDEFINITION.
 
 ENDCLASS.
 
@@ -31,9 +32,6 @@ CLASS /cadaxo/cl_mds_api_tabl IMPLEMENTATION.
     IF sy-subrc <> 0.
       MESSAGE '' TYPE 'X'.
     ENDIF.
-
-* me->/cadaxo/if_mds_api_datasource~header-http_link = |/sap/bc/adt/ddic/structures/{ i_sematic_key-name }/source/main?version=active&sap-client={ sy-mandt }|.
-* me->/cadaxo/if_mds_api_datasource~header-adt_link = |adt://{ sy-sysid }/sap/bc/adt/vit/wb/object_type/tabldt/object_name/{ i_sematic_key-name }|.
 
   ENDMETHOD.
 
@@ -84,6 +82,13 @@ CLASS /cadaxo/cl_mds_api_tabl IMPLEMENTATION.
                       api      = field ) TO r_fields.
 
     ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD /cadaxo/if_mds_api_datasource~get_action_links.
+
+    r_links_action-display = |/sap/bc/adt/ddic/structures/{ me->/cadaxo/if_mds_api_datasource~header-name }/source/main?version=active&sap-client={ sy-mandt }|.
+    r_links_action-edit = |adt://{ sy-sysid }/sap/bc/adt/vit/wb/object_type/tabldt/object_name/{ me->/cadaxo/if_mds_api_datasource~header-name }|.
 
   ENDMETHOD.
 

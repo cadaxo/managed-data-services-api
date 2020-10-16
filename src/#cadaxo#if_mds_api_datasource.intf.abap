@@ -10,11 +10,12 @@ INTERFACE /cadaxo/if_mds_api_datasource
   METHODS get_fields RETURNING VALUE(r_fields) TYPE /cadaxo/if_mds_api=>ty_fields.
   METHODS get_annotations RETURNING VALUE(r_annotations) TYPE /cadaxo/if_mds_api=>ty_annotations.
   METHODS get_parameters RETURNING VALUE(r_parameters) TYPE /cadaxo/if_mds_api=>ty_parameters.
+  METHODS get_action_links RETURNING VALUE(r_links_action) TYPE /cadaxo/if_mds_api=>ty_action_link.
 
-  DATA header TYPE /cadaxo/if_mds_api=>ty_datasource.
-  DATA relations TYPE /cadaxo/if_mds_api=>ty_relations.
-  DATA fields TYPE /cadaxo/if_mds_api=>ty_fields.
-  DATA annotations TYPE /cadaxo/if_mds_api=>ty_annotations.
-  DATA parameters TYPE /cadaxo/if_mds_api=>ty_parameters.
+  DATA header TYPE /cadaxo/if_mds_api=>ty_datasource READ-ONLY.
+  DATA relations TYPE /cadaxo/if_mds_api=>ty_relations READ-ONLY.
+  DATA fields TYPE /cadaxo/if_mds_api=>ty_fields READ-ONLY.
+  DATA annotations TYPE /cadaxo/if_mds_api=>ty_annotations READ-ONLY.
+  DATA parameters TYPE /cadaxo/if_mds_api=>ty_parameters READ-ONLY.
 
 ENDINTERFACE.

@@ -122,6 +122,10 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
   METHOD /cadaxo/if_mds_api~get_datasource_by_id.
 
+    DATA(datasources) = /cadaxo/if_mds_api~get_datasources_by_id( i_ds_id       = i_ds_id
+                                                                  i_read_depth  = 1 ).
+
+    r_datasource = datasources[ ds_id = i_ds_id ].
 
   ENDMETHOD.
 

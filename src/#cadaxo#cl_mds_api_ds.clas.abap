@@ -28,29 +28,8 @@ ENDCLASS.
 
 CLASS /CADAXO/CL_MDS_API_DS IMPLEMENTATION.
 
-
-  METHOD /cadaxo/if_mds_api_datasource~build_related_entities.
-
-  ENDMETHOD.
-
-
-  METHOD /cadaxo/if_mds_api_datasource~get_annotations.
-
-  ENDMETHOD.
-
-
   METHOD /cadaxo/if_mds_api_datasource~get_datasource.
     r_datasource = me->/cadaxo/if_mds_api_datasource~header.
-  ENDMETHOD.
-
-
-  METHOD /cadaxo/if_mds_api_datasource~get_fields.
-
-  ENDMETHOD.
-
-
-  METHOD /cadaxo/if_mds_api_datasource~get_parameters.
-
   ENDMETHOD.
 
 
@@ -58,14 +37,13 @@ CLASS /CADAXO/CL_MDS_API_DS IMPLEMENTATION.
     r_relations = me->/cadaxo/if_mds_api_datasource~relations.
   ENDMETHOD.
 
-
   METHOD constructor.
 
     me->/cadaxo/if_mds_api_datasource~header-semkey = i_sematic_key.
     me->/cadaxo/if_mds_api_datasource~header-ds_id = /cadaxo/cl_mds_api=>build_object_id( me->/cadaxo/if_mds_api_datasource~header-semkey ).
+    me->/cadaxo/if_mds_api_datasource~header-api = me.
 
   ENDMETHOD.
-
 
   METHOD get_instance.
 
@@ -93,4 +71,25 @@ CLASS /CADAXO/CL_MDS_API_DS IMPLEMENTATION.
     e_instance = <instance>-instance.
 
   ENDMETHOD.
+
+  METHOD /cadaxo/if_mds_api_datasource~build_related_entities.
+
+  ENDMETHOD.
+
+  METHOD /cadaxo/if_mds_api_datasource~get_fields.
+
+  ENDMETHOD.
+
+  METHOD /cadaxo/if_mds_api_datasource~get_annotations.
+
+  ENDMETHOD.
+
+  METHOD /cadaxo/if_mds_api_datasource~get_parameters.
+
+  ENDMETHOD.
+
+  METHOD /cadaxo/if_mds_api_datasource~get_action_links.
+
+  ENDMETHOD.
+
 ENDCLASS.
