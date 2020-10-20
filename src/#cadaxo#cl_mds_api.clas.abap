@@ -15,12 +15,10 @@ CLASS /cadaxo/cl_mds_api DEFINITION
 
     CLASS-DATA instance TYPE REF TO /cadaxo/if_mds_api.
   PRIVATE SECTION.
-    CLASS-DATA convert_out TYPE REF TO cl_abap_conv_out_ce.
+
+    CLASS-DATA id_handler TYPE REF TO /cadaxo/cl_mds_id.
     METHODS get_ds_reader IMPORTING i_ds_id            TYPE /cadaxo/mds_ds_id
                           RETURNING VALUE(r_ds_reader) TYPE REF TO /cadaxo/if_mds_api_datasource.
-    CLASS-METHODS string_to_xstring IMPORTING i_semkey_string         TYPE string
-                                    RETURNING VALUE(r_semkey_xstring) TYPE xstring.
-
 ENDCLASS.
 
 
@@ -171,15 +169,8 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
   METHOD /cadaxo/if_mds_api~get_link_by_id.
 
-    SELECT SINGLE object_id1 AS ds_id, object_id2
-           FROM /cadaxo/mds_lk
-           WHERE link_id = @i_link_id
-           INTO @DATA(semkey).
-    IF sy-subrc <> 0.
-      MESSAGE '' TYPE 'X'.
-    ENDIF.
 
-    DATA(links) = /cadaxo/if_mds_api~get_links_by_dsid( semkey-ds_id ).
+    DATA(links) = /cadaxo/if_mds_api~get_links_by_dsid( id_handler->get_link_semkey( i_link_id )-object_id1 ).
 
     r_link = links[ link_id = i_link_id ].
 
@@ -209,65 +200,13 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
   METHOD build_object_id.
 
-    FIELD-SYMBOLS: <buffer> TYPE any.
-
-    TRY.
-
-        DATA(structure) = CAST cl_abap_structdescr( cl_abap_structdescr=>describe_by_data( i_semkey ) ).
-        DATA(structure_name) = structure->get_relative_name( ).
-        CASE structure_name.
-          WHEN '/CADAXO/MDS_DS_SEMKEY'.
-          WHEN '/CADAXO/MDS_LK_SEMKEY'.
-          WHEN '/CADAXO/MDS_FD_SEMKEY'.
-          WHEN '/CADAXO/MDS_AN_SEMKEY'.
-          WHEN '/CADAXO/MDS_PR_SEMKEY'.
-          WHEN OTHERS.
-            MESSAGE '' TYPE 'X'.
-        ENDCASE.
-
-        cl_abap_hmac=>calculate_hmac_for_raw( EXPORTING if_key        = CONV #( '' )
-                                                        if_data       = string_to_xstring( CONV #( i_semkey ) )
-                                              IMPORTING ef_hmacstring = DATA(hashstring) ).
-
-        e_id = hashstring.
-
-**** WIP !!!
-        CASE structure_name.
-          WHEN '/CADAXO/MDS_DS_SEMKEY'.
-            DATA(ds_buffer) = VALUE /cadaxo/mds_ds( ds_id = e_id semkey = i_semkey ).
-            ASSIGN ds_buffer TO <buffer>.
-          WHEN '/CADAXO/MDS_LK_SEMKEY'.
-            DATA(link_buffer) = VALUE /cadaxo/mds_lk( link_id = e_id semkey = i_semkey ).
-            ASSIGN link_buffer TO <buffer>.
-          WHEN '/CADAXO/MDS_FD_SEMKEY'.
-            DATA(field_buffer) = VALUE /cadaxo/mds_fd( field_id = e_id semkey = i_semkey ).
-            ASSIGN field_buffer TO <buffer>.
-          WHEN '/CADAXO/MDS_AN_SEMKEY'.
-            DATA(annotation_buffer) = VALUE /cadaxo/mds_an( annotation_id = e_id semkey = i_semkey ).
-            ASSIGN annotation_buffer TO <buffer>.
-          WHEN '/CADAXO/MDS_PR_SEMKEY'.
-            DATA(parameter_buffer) = VALUE /cadaxo/mds_pr( parameter_id = e_id semkey = i_semkey ).
-            ASSIGN parameter_buffer TO <buffer>.
-          WHEN OTHERS.
-            MESSAGE '' TYPE 'X'.
-        ENDCASE.
-
-        DATA(buffer_table_name) = CONV tabname( structure_name(14) ).
-
-        MODIFY (buffer_table_name) FROM <buffer>.
-        IF sy-subrc <> 0.
-          MESSAGE 'BUFFER ERROR:' && buffer_table_name TYPE 'X'.
-        ENDIF.
-
-      CATCH cx_abap_message_digest.
-    ENDTRY.
+      e_id = id_handler->build_hash( i_semkey ).
 
   ENDMETHOD.
 
-
   METHOD class_constructor.
 
-    convert_out = cl_abap_conv_out_ce=>create( encoding = 'UTF-8' ).
+    id_handler = /cadaxo/cl_mds_id=>get_instance( ).
 
   ENDMETHOD.
 
@@ -290,18 +229,5 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
   ENDMETHOD.
 
 
-  METHOD string_to_xstring.
 
-    TRY.
-
-        convert_out->convert( EXPORTING data   = i_semkey_string
-                              IMPORTING buffer = r_semkey_xstring ).
-
-      CATCH cx_parameter_invalid_range
-            cx_sy_codepage_converter_init
-            cx_sy_conversion_codepage
-            cx_parameter_invalid_type.
-    ENDTRY.
-
-  ENDMETHOD.
 ENDCLASS.

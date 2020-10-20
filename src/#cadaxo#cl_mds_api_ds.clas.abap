@@ -6,11 +6,14 @@ CLASS /cadaxo/cl_mds_api_ds DEFINITION
   PUBLIC SECTION.
     INTERFACES /cadaxo/if_mds_api_datasource.
 
+    CLASS-METHODS class_constructor.
     CLASS-METHODS get_instance IMPORTING i_ds_id           TYPE /cadaxo/mds_ds_id
                                RETURNING VALUE(e_instance) TYPE REF TO /cadaxo/if_mds_api_datasource.
     METHODS constructor IMPORTING i_sematic_key TYPE /cadaxo/mds_ds_semkey.
 
   PROTECTED SECTION.
+    CLASS-DATA id_handler TYPE REF TO /cadaxo/cl_mds_id.
+
     TYPES: BEGIN OF ty_instance,
              ds_id    TYPE /cadaxo/mds_ds_id,
              instance TYPE REF TO /cadaxo/if_mds_api_datasource,
@@ -26,7 +29,11 @@ ENDCLASS.
 
 
 
-CLASS /CADAXO/CL_MDS_API_DS IMPLEMENTATION.
+CLASS /cadaxo/cl_mds_api_ds IMPLEMENTATION.
+
+  METHOD class_constructor.
+    id_handler = /cadaxo/cl_mds_id=>get_instance( ).
+  ENDMETHOD.
 
   METHOD /cadaxo/if_mds_api_datasource~get_datasource.
     r_datasource = me->/cadaxo/if_mds_api_datasource~header.
@@ -51,13 +58,7 @@ CLASS /CADAXO/CL_MDS_API_DS IMPLEMENTATION.
 
     IF NOT line_exists( instances[ ds_id = i_ds_id ] ).
 
-    SELECT SINGLE type, name
-           FROM /cadaxo/mds_ds
-           WHERE ds_id = @i_ds_id
-           INTO @DATA(semkey).
-    IF sy-subrc <> 0.
-      MESSAGE '' TYPE 'X'.
-    ENDIF.
+      DATA(semkey) = id_handler->get_ds_semkey( i_ds_id ).
 
       DATA(ds_class_name) = '/CADAXO/CL_MDS_API_' && semkey-type.
       CREATE OBJECT ds_instance TYPE (ds_class_name) EXPORTING i_sematic_key = semkey.
