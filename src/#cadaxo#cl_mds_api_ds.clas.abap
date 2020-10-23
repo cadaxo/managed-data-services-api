@@ -25,6 +25,17 @@ CLASS /cadaxo/cl_mds_api_ds DEFINITION
                  active TYPE as4local VALUE 'A',
                END OF version.
 
+    TYPES: BEGIN OF ty_ds_field,
+             field_name      TYPE fieldname,
+             field_alias     TYPE fieldname_raw,
+             position        TYPE  ddfdpos,
+*       viewfield
+             base_tabable    TYPE vibastab,
+             base_field_name TYPE vibasfld,
+           END OF ty_ds_field,
+           ty_ds_fields TYPE STANDARD TABLE OF ty_ds_field.
+
+    DATA: ds_fields TYPE ty_ds_fields.
 ENDCLASS.
 
 
@@ -65,6 +76,9 @@ CLASS /cadaxo/cl_mds_api_ds IMPLEMENTATION.
 
       INSERT VALUE #( ds_id    = i_ds_id
                       instance = ds_instance ) INTO TABLE instances ASSIGNING FIELD-SYMBOL(<instance>).
+      IF lines( instances ) = 1.
+        <instance>-instance->set_main( abap_true ).
+      ENDIF.
     ELSE.
       ASSIGN instances[ ds_id = i_ds_id ] TO <instance>.
     ENDIF.
@@ -90,6 +104,29 @@ CLASS /cadaxo/cl_mds_api_ds IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD /cadaxo/if_mds_api_datasource~get_action_links.
+
+  ENDMETHOD.
+
+  METHOD /cadaxo/if_mds_api_datasource~set_main.
+
+    me->/cadaxo/if_mds_api_datasource~header-main = i_is_main.
+
+  ENDMETHOD.
+
+  METHOD /cadaxo/if_mds_api_datasource~has_field.
+
+    IF ds_fields IS INITIAL.
+      me->/cadaxo/if_mds_api_datasource~get_fields( ).
+    ENDIF.
+
+    IF line_exists( ds_fields[ field_name = c_fieldname ] ).
+      ASSIGN ds_fields[ field_name = c_fieldname ] TO FIELD-SYMBOL(<field>).
+      me->/cadaxo/if_mds_api_datasource~header-search_field = c_fieldname.
+      IF <field>-base_field_name IS NOT INITIAL.
+        c_fieldname = <field>-base_field_name.
+      ENDIF.
+      r_from_ds-name = <field>-base_tabable.
+    ENDIF.
 
   ENDMETHOD.
 

@@ -71,12 +71,12 @@ CLASS /cadaxo/cl_mds_api_tabl IMPLEMENTATION.
            WHERE tabname  = @me->/cadaxo/if_mds_api_datasource~header-name
              AND as4local = 'A'
            ORDER BY position
-           into table @DATA(table_fields).
+           into table @me->ds_fields.
 
-    LOOP AT table_fields ASSIGNING FIELD-SYMBOL(<table_field>) WHERE field_name NP '.INC*'.
+    LOOP AT me->ds_fields ASSIGNING FIELD-SYMBOL(<ds_field>) WHERE field_name NP '.INC*'.
       DATA(field) = /cadaxo/cl_mds_api_field=>get_instance( i_field_id =  /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_fd_semkey( ds_id      = me->/cadaxo/if_mds_api_datasource~header-ds_id
-                                                                                                                                            field_name = <table_field>-field_name ) )
-                                                            i_data = CORRESPONDING #( <table_field> ) ).
+                                                                                                                                            field_name = <ds_field>-field_name ) )
+                                                            i_data = CORRESPONDING #( <ds_field> ) ).
 
       APPEND VALUE #( field_id = field->get_id( )
                       api      = field ) TO r_fields.

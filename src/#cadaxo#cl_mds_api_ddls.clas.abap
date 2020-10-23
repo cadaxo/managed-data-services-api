@@ -154,19 +154,10 @@ CLASS /cadaxo/cl_mds_api_ddls IMPLEMENTATION.
 
     ENDLOOP.
 
-
     LOOP AT me->/cadaxo/if_mds_api_datasource~relations ASSIGNING FIELD-SYMBOL(<relation>) WHERE link_id = 'GET_ID'.
       <relation>-link_id = /cadaxo/cl_mds_api=>build_object_id( <relation>-semkey ).
     ENDLOOP.
 
-*data(save) = me->/cadaxo/if_mds_api_datasource~relations.
-*    data(before) = lines( me->/cadaxo/if_mds_api_datasource~relations ).
-*    sort me->/cadaxo/if_mds_api_datasource~relations by link_id.
-*    delete ADJACENT DUPLICATES FROM me->/cadaxo/if_mds_api_datasource~relations comparing link_id.
-*    data(after) = lines( me->/cadaxo/if_mds_api_datasource~relations ).
-*if before <> after.
-*data(diff) = before - after.
-*endif.
   ENDMETHOD.
 
 
@@ -187,13 +178,24 @@ CLASS /cadaxo/cl_mds_api_ddls IMPLEMENTATION.
                       position    = <annotation>-position ) TO r_annotations.
     ENDLOOP.
 
-*        SELECT lfieldname AS fieldname, name, position, value
-*               FROM ddfieldanno
-*               WHERE strucobjn = @name
-*               ORDER BY position
-*               APPENDING CORRESPONDING FIELDS OF TABLE @e_annotations.
-  ENDMETHOD.
+    SELECT lfieldname AS fieldname, name AS annotation, position, value
+           FROM ddfieldanno
+           WHERE strucobjn = @me->/cadaxo/if_mds_api_datasource~header-name
+           ORDER BY position
+           into table @DATA(field_annotations).
+    LOOP AT field_annotations ASSIGNING FIELD-SYMBOL(<field_annotation>).
 
+
+      DATA(field_id) = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_fd_semkey( ds_id      = me->/cadaxo/if_mds_api_datasource~header-ds_id
+                                                                                         field_name = <field_annotation>-fieldname ) ).
+      APPEND VALUE #( annotation_id    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_an_semkey( object_id  = field_id
+                                                                                                           annotation = <field_annotation>-annotation ) )
+                      object_id   = field_id
+                      annotation  = <field_annotation>-annotation
+                      value       = <field_annotation>-value
+                      position    = <field_annotation>-position ) TO r_annotations.
+    ENDLOOP.
+  ENDMETHOD.
 
   METHOD /cadaxo/if_mds_api_datasource~get_fields.
 
@@ -207,13 +209,13 @@ CLASS /cadaxo/cl_mds_api_ddls IMPLEMENTATION.
            WHERE strucobjn = @me->/cadaxo/if_mds_api_datasource~header-name
              AND cdsfields~as4local  = @/cadaxo/cl_mds_api_ds=>version-active
            ORDER BY position
-           into table @DATA(cds_fields).
+           into table @me->ds_fields.
 
-    LOOP AT cds_fields ASSIGNING FIELD-SYMBOL(<cds_field>).
+    LOOP AT me->ds_fields ASSIGNING FIELD-SYMBOL(<ds_field>).
 
       DATA(field) = /cadaxo/cl_mds_api_field=>get_instance( i_field_id =  /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_fd_semkey( ds_id      = me->/cadaxo/if_mds_api_datasource~header-ds_id
-                                                                                                                                            field_name = <cds_field>-field_name ) )
-                                                            i_data = CORRESPONDING #( <cds_field> ) ).
+                                                                                                                                            field_name = <ds_field>-field_name ) )
+                                                            i_data = CORRESPONDING #( <ds_field> ) ).
 
       APPEND VALUE #( field_id = field->get_id( )
                       api      = field ) TO r_fields.
@@ -257,4 +259,7 @@ CLASS /cadaxo/cl_mds_api_ddls IMPLEMENTATION.
     r_links_action-display = |/sap/bc/adt/ddic/ddl/sources/{ me->/cadaxo/if_mds_api_datasource~header-name }/source/main?version=active&sap-client={ sy-mandt }|.
     r_links_action-edit = |adt://{ sy-sysid }/sap/bc/adt/ddic/ddl/sources/{ me->/cadaxo/if_mds_api_datasource~header-name }|.
   ENDMETHOD.
+
+
+
 ENDCLASS.

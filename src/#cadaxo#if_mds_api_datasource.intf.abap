@@ -11,6 +11,9 @@ INTERFACE /cadaxo/if_mds_api_datasource
   METHODS get_annotations RETURNING VALUE(r_annotations) TYPE /cadaxo/if_mds_api=>ty_annotations.
   METHODS get_parameters RETURNING VALUE(r_parameters) TYPE /cadaxo/if_mds_api=>ty_parameters.
   METHODS get_action_links RETURNING VALUE(r_links_action) TYPE /cadaxo/if_mds_api=>ty_action_link.
+  METHODS set_main IMPORTING i_is_main TYPE abap_bool.
+  METHODS has_field CHANGING  c_fieldname      TYPE fieldname
+                    RETURNING VALUE(r_from_ds) TYPE /cadaxo/mds_ds_semkey.
 
   DATA header TYPE /cadaxo/if_mds_api=>ty_datasource READ-ONLY.
   DATA relations TYPE /cadaxo/if_mds_api=>ty_relations READ-ONLY.

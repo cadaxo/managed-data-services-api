@@ -42,12 +42,15 @@ INTERFACE /cadaxo/if_mds_api
   TYPES: BEGIN OF ty_datasource.
   INCLUDE TYPE /cadaxo/mds_ds_semkey AS semkey.
   TYPES:
-    ds_id       TYPE /cadaxo/mds_ds_id,
-    changed_by  TYPE as4user,
-    changed_at  TYPE timestampl,
-    description TYPE as4text,
-    sqlviewname TYPE tabname,
-    api         TYPE REF TO /cadaxo/if_mds_api_datasource,
+    ds_id        TYPE /cadaxo/mds_ds_id,
+    changed_by   TYPE as4user,
+    changed_at   TYPE timestampl,
+    description  TYPE as4text,
+    sqlviewname  TYPE tabname,
+    depth        TYPE i,
+    search_field TYPE fieldname,
+    main         type abap_bool,
+    api          TYPE REF TO /cadaxo/if_mds_api_datasource,
     END OF ty_datasource,
     ty_datasources TYPE STANDARD TABLE OF ty_datasource WITH DEFAULT KEY.
 
@@ -59,9 +62,11 @@ INTERFACE /cadaxo/if_mds_api
 
   METHODS get_datasources_by_semkey IMPORTING i_ds_semkey          TYPE /cadaxo/mds_ds_semkey
                                               i_read_depth         TYPE i
+                                              i_fieldname_filter   TYPE fieldname OPTIONAL
                                     RETURNING VALUE(r_datasources) TYPE ty_datasources.
   METHODS get_datasources_by_id IMPORTING i_ds_id              TYPE /cadaxo/mds_ds_id
                                           i_read_depth         TYPE i
+                                          i_fieldname_filter   TYPE fieldname OPTIONAL
                                 RETURNING VALUE(r_datasources) TYPE ty_datasources.
   METHODS get_datasource_by_id IMPORTING i_ds_id             TYPE /cadaxo/mds_ds_id
                                RETURNING VALUE(r_datasource) TYPE ty_datasource.

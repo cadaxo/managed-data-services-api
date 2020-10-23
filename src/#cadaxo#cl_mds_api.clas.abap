@@ -30,16 +30,18 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
     DATA(ds_reader) = me->get_ds_reader( i_ds_id ).
 
-    ds_reader->build_related_entities( ).
+*    ds_reader->build_related_entities( ).
 
     r_annotations = ds_reader->get_annotations( ).
+
+    DELETE r_annotations WHERE object_id <> i_ds_id.
 
   ENDMETHOD.
 
 
   METHOD /cadaxo/if_mds_api~get_annotations_by_fieldid.
 
-    SELECT SINGLE ds_id, field_name
+    SELECT SINGLE ds_id
            FROM /cadaxo/mds_fd
            WHERE field_id = @i_field_id
            INTO @DATA(semkey).
@@ -47,8 +49,11 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
       MESSAGE '' TYPE 'X'.
     ENDIF.
 
-    DATA(annotations) = /cadaxo/if_mds_api~get_annotations_by_dsid( semkey-ds_id ).
+    DATA(ds_reader) = me->get_ds_reader( semkey ).
 
+    r_annotations = ds_reader->get_annotations( ).
+
+    DELETE r_annotations WHERE object_id <> i_field_id.
 
   ENDMETHOD.
 
@@ -78,6 +83,13 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
     DATA(ds_reader) = me->get_ds_reader( i_ds_id ).
 
+    IF  i_fieldname_filter IS NOT INITIAL.
+
+      DATA(search_fieldname) = i_fieldname_filter.
+      DATA(field_source_ds) = ds_reader->has_field( CHANGING c_fieldname = search_fieldname ).
+
+    ENDIF.
+
     APPEND ds_reader->get_datasource( ) TO r_datasources.
 
     IF read_depth >= 0.
@@ -86,9 +98,10 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
         read_depth = -1.
       ENDIF.
 
-      ds_reader->build_related_entities(  ).
+      ds_reader->build_related_entities( ).
 
       DATA(relations) = ds_reader->get_relations( ).
+
       LOOP AT relations ASSIGNING FIELD-SYMBOL(<relation>).
 
         DATA(related_dss) = /cadaxo/if_mds_api~get_datasources_by_id( i_ds_id = <relation>-object_id2 i_read_depth = read_depth ).
@@ -96,6 +109,16 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
         LOOP AT related_dss ASSIGNING FIELD-SYMBOL(<related_ds>).
 
           IF NOT line_exists( r_datasources[ ds_id = <related_ds>-ds_id ] ).
+
+            IF  search_fieldname IS NOT INITIAL.
+
+              DATA(search_fieldname_down) = search_fieldname.
+              DATA(field_source_down_ds) = <related_ds>-api->has_field( CHANGING c_fieldname = search_fieldname_down ).
+
+              <related_ds> = <related_ds>-api->get_datasource( ).
+
+            ENDIF.
+
             APPEND <related_ds> TO r_datasources.
           ENDIF.
 
@@ -112,16 +135,17 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
     DATA(id) = me->build_object_id( i_ds_semkey ).
 
-    r_datasources = me->/cadaxo/if_mds_api~get_datasources_by_id( i_ds_id      = id
-                                                                  i_read_depth = i_read_depth ).
+    r_datasources = me->/cadaxo/if_mds_api~get_datasources_by_id( i_ds_id            = id
+                                                                  i_read_depth       = i_read_depth
+                                                                  i_fieldname_filter = i_fieldname_filter ).
 
   ENDMETHOD.
 
 
   METHOD /cadaxo/if_mds_api~get_datasource_by_id.
 
-    DATA(datasources) = /cadaxo/if_mds_api~get_datasources_by_id( i_ds_id       = i_ds_id
-                                                                  i_read_depth  = 1 ).
+    DATA(datasources) = /cadaxo/if_mds_api~get_datasources_by_id( i_ds_id            = i_ds_id
+                                                                  i_read_depth       = 1 ).
 
     r_datasource = datasources[ ds_id = i_ds_id ].
 
@@ -200,7 +224,7 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
   METHOD build_object_id.
 
-      e_id = id_handler->build_hash( i_semkey ).
+    e_id = id_handler->build_hash( i_semkey ).
 
   ENDMETHOD.
 
