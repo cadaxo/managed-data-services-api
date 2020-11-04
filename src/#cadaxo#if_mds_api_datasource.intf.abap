@@ -1,9 +1,10 @@
 INTERFACE /cadaxo/if_mds_api_datasource
   PUBLIC .
-  CONSTANTS: BEGIN OF types,
+  CONSTANTS: BEGIN OF type,
                datadefinition TYPE string VALUE 'DDLS',
                table          TYPE string VALUE 'TABL',
-             END OF types.
+             END OF type.
+
   METHODS build_related_entities.
   METHODS get_relations RETURNING VALUE(r_relations) TYPE /cadaxo/if_mds_api=>ty_relations.
   METHODS get_datasource RETURNING VALUE(r_datasource) TYPE /cadaxo/if_mds_api=>ty_datasource.
@@ -11,10 +12,11 @@ INTERFACE /cadaxo/if_mds_api_datasource
   METHODS get_annotations RETURNING VALUE(r_annotations) TYPE /cadaxo/if_mds_api=>ty_annotations.
   METHODS get_parameters RETURNING VALUE(r_parameters) TYPE /cadaxo/if_mds_api=>ty_parameters.
   METHODS get_action_links RETURNING VALUE(r_links_action) TYPE /cadaxo/if_mds_api=>ty_action_link.
-  METHODS set_main IMPORTING i_is_main TYPE abap_bool.
-  METHODS has_field CHANGING  c_fieldname      TYPE fieldname
-                    RETURNING VALUE(r_from_ds) TYPE /cadaxo/mds_ds_semkey.
-
+  METHODS set_role IMPORTING i_role TYPE /cadaxo/if_mds_api=>ty_ds_role.
+  METHODS has_field IMPORTING i_fieldname_search       TYPE /cadaxo/mds_field_search
+                    RETURNING VALUE(r_field_source_ds) TYPE /cadaxo/mds_field_search.
+  METHODS uses_field IMPORTING i_fieldname_search       TYPE /cadaxo/mds_field_search
+                     RETURNING VALUE(r_field_source_ds) TYPE /cadaxo/mds_field_search.
   DATA header TYPE /cadaxo/if_mds_api=>ty_datasource READ-ONLY.
   DATA relations TYPE /cadaxo/if_mds_api=>ty_relations READ-ONLY.
   DATA fields TYPE /cadaxo/if_mds_api=>ty_fields READ-ONLY.

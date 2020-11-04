@@ -39,18 +39,25 @@ INTERFACE /cadaxo/if_mds_api
     END OF ty_relation,
     ty_relations TYPE STANDARD TABLE OF ty_relation WITH DEFAULT KEY.
 
+*  TYPES: BEGIN OF ty_field_source_ds,
+*           search_object_name TYPE /cadaxo/mds_object_name,
+*           search_field_name  TYPE fieldname,
+*           base_object_name   TYPE vibastab,
+*           base_field_name    TYPE vibasfld,
+*         END OF ty_field_source_ds.
   TYPES: BEGIN OF ty_datasource.
   INCLUDE TYPE /cadaxo/mds_ds_semkey AS semkey.
   TYPES:
-    ds_id        TYPE /cadaxo/mds_ds_id,
-    changed_by   TYPE as4user,
-    changed_at   TYPE timestampl,
-    description  TYPE as4text,
-    sqlviewname  TYPE tabname,
-    depth        TYPE i,
-    search_field TYPE fieldname,
-    main         type abap_bool,
-    api          TYPE REF TO /cadaxo/if_mds_api_datasource,
+    ds_id       TYPE /cadaxo/mds_ds_id,
+    changed_by  TYPE as4user,
+    changed_at  TYPE timestampl,
+    description TYPE as4text,
+    sqlviewname TYPE tabname.
+  INCLUDE TYPE /cadaxo/mds_field_search AS field_search.
+  TYPES:
+    depth TYPE i,
+    role  TYPE int4,
+    api   TYPE REF TO /cadaxo/if_mds_api_datasource,
     END OF ty_datasource,
     ty_datasources TYPE STANDARD TABLE OF ty_datasource WITH DEFAULT KEY.
 
@@ -60,12 +67,18 @@ INTERFACE /cadaxo/if_mds_api
            edit    TYPE string,
          END OF ty_action_link.
 
+  TYPES: ty_ds_role TYPE i.
+  CONSTANTS: BEGIN OF ds_role,
+               main   TYPE /cadaxo/if_mds_api=>ty_ds_role VALUE 0,
+               parent TYPE /cadaxo/if_mds_api=>ty_ds_role VALUE -1,
+               child  TYPE /cadaxo/if_mds_api=>ty_ds_role VALUE 1,
+             END OF ds_role.
+
   METHODS get_datasources_by_semkey IMPORTING i_ds_semkey          TYPE /cadaxo/mds_ds_semkey
-                                              i_read_depth         TYPE i
                                               i_fieldname_filter   TYPE fieldname OPTIONAL
                                     RETURNING VALUE(r_datasources) TYPE ty_datasources.
   METHODS get_datasources_by_id IMPORTING i_ds_id              TYPE /cadaxo/mds_ds_id
-                                          i_read_depth         TYPE i
+                                          i_as_role            TYPE ty_ds_role DEFAULT ds_role-main
                                           i_fieldname_filter   TYPE fieldname OPTIONAL
                                 RETURNING VALUE(r_datasources) TYPE ty_datasources.
   METHODS get_datasource_by_id IMPORTING i_ds_id             TYPE /cadaxo/mds_ds_id

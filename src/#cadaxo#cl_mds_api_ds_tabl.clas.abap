@@ -1,4 +1,4 @@
-CLASS /cadaxo/cl_mds_api_tabl DEFINITION INHERITING FROM /cadaxo/cl_mds_api_ds
+CLASS /CADAXO/CL_MDS_API_DS_TABL DEFINITION INHERITING FROM /cadaxo/cl_mds_api_ds
   PUBLIC
   CREATE PUBLIC .
 
@@ -12,7 +12,7 @@ CLASS /cadaxo/cl_mds_api_tabl DEFINITION INHERITING FROM /cadaxo/cl_mds_api_ds
 ENDCLASS.
 
 
-CLASS /cadaxo/cl_mds_api_tabl IMPLEMENTATION.
+CLASS /CADAXO/CL_MDS_API_DS_TABL IMPLEMENTATION.
 
   METHOD constructor.
 
@@ -38,28 +38,31 @@ CLASS /cadaxo/cl_mds_api_tabl IMPLEMENTATION.
 
   METHOD /cadaxo/if_mds_api_datasource~build_related_entities.
 
-    SELECT b~strucobjn
-           FROM dd26s AS a
-           INNER JOIN dd02bnd AS b
-                 ON b~dbtabname = a~viewname
-           WHERE a~tabname  = @/cadaxo/if_mds_api_datasource~header-name
-             AND b~as4local = @version-active
-           INTO TABLE @DATA(base_tables).
+    IF me->/cadaxo/if_mds_api_datasource~header-role >= /cadaxo/if_mds_api=>ds_role-main.
+      SELECT b~strucobjn
+             FROM dd26s AS a
+             INNER JOIN dd02bnd AS b
+                   ON b~dbtabname = a~viewname
+             WHERE a~tabname  = @/cadaxo/if_mds_api_datasource~header-name
+               AND b~as4local = @version-active
+             INTO TABLE @DATA(base_tables).
 
-    LOOP AT base_tables ASSIGNING FIELD-SYMBOL(<base_table>).
+      LOOP AT base_tables ASSIGNING FIELD-SYMBOL(<base_table>).
 
-      APPEND VALUE #( link_id       = 'GET_ID'
-                      object_id1    = me->/cadaxo/if_mds_api_datasource~header-ds_id
-                      object_id2    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey(  type = /cadaxo/if_mds_api_datasource~types-datadefinition
-                                                                                                         name = <base_table>-strucobjn ) )
-                      description   = 'is used in'
-                      relation_type = 'ISUSED' ) TO me->/cadaxo/if_mds_api_datasource~relations.
+        APPEND VALUE #( link_id       = 'GET_ID'
+                        object_id1    = me->/cadaxo/if_mds_api_datasource~header-ds_id
+                        object_id2    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey(  type = /cadaxo/if_mds_api_datasource~type-datadefinition
+                                                                                                           name = <base_table>-strucobjn ) )
+                        description   = 'is used in'
+                        relation_type = 'ISUSED' ) TO me->/cadaxo/if_mds_api_datasource~relations.
 
-    ENDLOOP.
+      ENDLOOP.
 
-    LOOP AT me->/cadaxo/if_mds_api_datasource~relations ASSIGNING FIELD-SYMBOL(<relation>) WHERE link_id = 'GET_ID'.
-      <relation>-link_id = /cadaxo/cl_mds_api=>build_object_id( <relation>-semkey ).
-    ENDLOOP.
+      LOOP AT me->/cadaxo/if_mds_api_datasource~relations ASSIGNING FIELD-SYMBOL(<relation>) WHERE link_id = 'GET_ID'.
+        <relation>-link_id = /cadaxo/cl_mds_api=>build_object_id( <relation>-semkey ).
+      ENDLOOP.
+
+    ENDIF.
 
   ENDMETHOD.
 

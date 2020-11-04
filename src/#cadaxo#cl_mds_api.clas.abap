@@ -19,6 +19,12 @@ CLASS /cadaxo/cl_mds_api DEFINITION
     CLASS-DATA id_handler TYPE REF TO /cadaxo/cl_mds_id.
     METHODS get_ds_reader IMPORTING i_ds_id            TYPE /cadaxo/mds_ds_id
                           RETURNING VALUE(r_ds_reader) TYPE REF TO /cadaxo/if_mds_api_datasource.
+    METHODS search_field
+      IMPORTING
+        is_role           LIKE /cadaxo/if_mds_api=>ds_role-child
+      CHANGING
+        c_field_source_ds TYPE /cadaxo/mds_field_search
+        c_related_ds      TYPE /cadaxo/if_mds_api=>ty_datasource.
 ENDCLASS.
 
 
@@ -29,8 +35,6 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
   METHOD /cadaxo/if_mds_api~get_annotations_by_dsid.
 
     DATA(ds_reader) = me->get_ds_reader( i_ds_id ).
-
-*    ds_reader->build_related_entities( ).
 
     r_annotations = ds_reader->get_annotations( ).
 
@@ -77,54 +81,76 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
   METHOD /cadaxo/if_mds_api~get_datasources_by_id.
 
-    DATA(read_depth) = COND int4( WHEN i_read_depth > 0 THEN i_read_depth - 1
-                                  WHEN i_read_depth = 0 THEN 0
-                                  ELSE -1 ).
-
     DATA(ds_reader) = me->get_ds_reader( i_ds_id ).
+    ds_reader->set_role( i_as_role ).
 
     IF  i_fieldname_filter IS NOT INITIAL.
 
-      DATA(search_fieldname) = i_fieldname_filter.
-      DATA(field_source_ds) = ds_reader->has_field( CHANGING c_fieldname = search_fieldname ).
+      DATA(field_source_ds) = ds_reader->has_field( VALUE #( search_field_name = i_fieldname_filter ) ).
+      DATA(field_parent_source_ds) = field_source_ds.
+      DATA(field_child_source_ds)  = field_source_ds ."VALUE /cadaxo/if_mds_api=>ty_field_source_ds( search_field_name = i_fieldname_filter search_object_name = ds_reader->header-sqlviewname ).
 
     ENDIF.
 
     APPEND ds_reader->get_datasource( ) TO r_datasources.
 
-    IF read_depth >= 0.
+    ds_reader->build_related_entities( ).
 
-      IF read_depth = 0.
-        read_depth = -1.
+    DATA(relations) = ds_reader->get_relations( ).
+
+    LOOP AT relations ASSIGNING FIELD-SYMBOL(<relation>).
+
+      IF <relation>-relation_type = 'ISUSED'.
+        DATA(as_role) = /cadaxo/if_mds_api=>ds_role-child.
+        ASSIGN field_child_source_ds TO FIELD-SYMBOL(<field_source_ds>).
+      ELSE.
+        as_role = /cadaxo/if_mds_api=>ds_role-parent.
+        ASSIGN field_parent_source_ds TO <field_source_ds>.
       ENDIF.
 
-      ds_reader->build_related_entities( ).
+      DATA(related_dss) = /cadaxo/if_mds_api~get_datasources_by_id( i_ds_id   = <relation>-object_id2
+                                                                    i_as_role = as_role ).
 
-      DATA(relations) = ds_reader->get_relations( ).
 
-      LOOP AT relations ASSIGNING FIELD-SYMBOL(<relation>).
+      LOOP AT related_dss ASSIGNING FIELD-SYMBOL(<related_ds>).
 
-        DATA(related_dss) = /cadaxo/if_mds_api~get_datasources_by_id( i_ds_id = <relation>-object_id2 i_read_depth = read_depth ).
+        IF NOT line_exists( r_datasources[ ds_id = <related_ds>-ds_id ] ).
 
-        LOOP AT related_dss ASSIGNING FIELD-SYMBOL(<related_ds>).
+          search_field( EXPORTING is_role          = as_role
+                        CHANGING c_field_source_ds = <field_source_ds>
+                                 c_related_ds      = <related_ds> ).
 
-          IF NOT line_exists( r_datasources[ ds_id = <related_ds>-ds_id ] ).
-
-            IF  search_fieldname IS NOT INITIAL.
-
-              DATA(search_fieldname_down) = search_fieldname.
-              DATA(field_source_down_ds) = <related_ds>-api->has_field( CHANGING c_fieldname = search_fieldname_down ).
-
-              <related_ds> = <related_ds>-api->get_datasource( ).
-
-            ENDIF.
-
-            APPEND <related_ds> TO r_datasources.
-          ENDIF.
-
-        ENDLOOP.
+          APPEND <related_ds> TO r_datasources.
+        ENDIF.
 
       ENDLOOP.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD search_field.
+
+    IF c_field_source_ds IS NOT INITIAL.
+
+      IF is_role = /cadaxo/if_mds_api=>ds_role-parent.
+        c_field_source_ds = VALUE /cadaxo/mds_field_search( BASE c_field_source_ds search_object_name = c_field_source_ds-base_object_name
+                                                                                   search_field_name  = c_field_source_ds-base_field_name ).
+
+        DATA(field_source_related_ds) = c_related_ds-api->has_field( c_field_source_ds ).
+
+      ELSEIF is_role = /cadaxo/if_mds_api=>ds_role-child.
+        c_field_source_ds = VALUE #( BASE c_field_source_ds base_object_name = c_field_source_ds-search_object_name
+                                                                        base_field_name  = c_field_source_ds-search_field_name ).
+
+        field_source_related_ds = c_related_ds-api->uses_field( c_field_source_ds ).
+      ENDIF.
+
+      c_related_ds = CORRESPONDING #( BASE ( c_related_ds ) field_source_related_ds ).
+
+      IF field_source_related_ds IS NOT INITIAL.
+        c_field_source_ds = field_source_related_ds.
+      ENDIF.
 
     ENDIF.
 
@@ -136,7 +162,6 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
     DATA(id) = me->build_object_id( i_ds_semkey ).
 
     r_datasources = me->/cadaxo/if_mds_api~get_datasources_by_id( i_ds_id            = id
-                                                                  i_read_depth       = i_read_depth
                                                                   i_fieldname_filter = i_fieldname_filter ).
 
   ENDMETHOD.
@@ -144,8 +169,7 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
   METHOD /cadaxo/if_mds_api~get_datasource_by_id.
 
-    DATA(datasources) = /cadaxo/if_mds_api~get_datasources_by_id( i_ds_id            = i_ds_id
-                                                                  i_read_depth       = 1 ).
+    DATA(datasources) = /cadaxo/if_mds_api~get_datasources_by_id( i_ds_id ).
 
     r_datasource = datasources[ ds_id = i_ds_id ].
 

@@ -29,13 +29,13 @@ CLASS /cadaxo/cl_mds_api_ds DEFINITION
              field_name      TYPE fieldname,
              field_alias     TYPE fieldname_raw,
              position        TYPE  ddfdpos,
-*       viewfield
              base_tabable    TYPE vibastab,
              base_field_name TYPE vibasfld,
            END OF ty_ds_field,
            ty_ds_fields TYPE STANDARD TABLE OF ty_ds_field.
 
     DATA: ds_fields TYPE ty_ds_fields.
+
 ENDCLASS.
 
 
@@ -71,14 +71,17 @@ CLASS /cadaxo/cl_mds_api_ds IMPLEMENTATION.
 
       DATA(semkey) = id_handler->get_ds_semkey( i_ds_id ).
 
-      DATA(ds_class_name) = '/CADAXO/CL_MDS_API_' && semkey-type.
+      DATA(ds_class_name) = '/CADAXO/CL_MDS_API_DS_' && semkey-type.
       CREATE OBJECT ds_instance TYPE (ds_class_name) EXPORTING i_sematic_key = semkey.
+
+      IF instances IS INITIAL.
+        ds_instance->set_role( /cadaxo/if_mds_api=>ds_role-main ).
+      ENDIF.
 
       INSERT VALUE #( ds_id    = i_ds_id
                       instance = ds_instance ) INTO TABLE instances ASSIGNING FIELD-SYMBOL(<instance>).
-      IF lines( instances ) = 1.
-        <instance>-instance->set_main( abap_true ).
-      ENDIF.
+
+
     ELSE.
       ASSIGN instances[ ds_id = i_ds_id ] TO <instance>.
     ENDIF.
@@ -107,27 +110,90 @@ CLASS /cadaxo/cl_mds_api_ds IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD /cadaxo/if_mds_api_datasource~set_main.
+  METHOD /cadaxo/if_mds_api_datasource~set_role.
 
-    me->/cadaxo/if_mds_api_datasource~header-main = i_is_main.
+    me->/cadaxo/if_mds_api_datasource~header-depth = 0.
+    me->/cadaxo/if_mds_api_datasource~header-role  = i_role.
 
   ENDMETHOD.
 
   METHOD /cadaxo/if_mds_api_datasource~has_field.
 
-    IF ds_fields IS INITIAL.
+    IF i_fieldname_search-search_object_name IS NOT INITIAL.
+      IF me->/cadaxo/if_mds_api_datasource~header-name <> i_fieldname_search-search_object_name
+         AND me->/cadaxo/if_mds_api_datasource~header-sqlviewname <> i_fieldname_search-search_object_name.
+        RETURN.
+      ENDIF.
+    ENDIF.
+    IF me->ds_fields IS INITIAL.
       me->/cadaxo/if_mds_api_datasource~get_fields( ).
     ENDIF.
 
-    IF line_exists( ds_fields[ field_name = c_fieldname ] ).
-      ASSIGN ds_fields[ field_name = c_fieldname ] TO FIELD-SYMBOL(<field>).
-      me->/cadaxo/if_mds_api_datasource~header-search_field = c_fieldname.
-      IF <field>-base_field_name IS NOT INITIAL.
-        c_fieldname = <field>-base_field_name.
-      ENDIF.
-      r_from_ds-name = <field>-base_tabable.
+    IF line_exists( ds_fields[ field_name = i_fieldname_search-search_field_name ] ).
+      ASSIGN ds_fields[ field_name = i_fieldname_search-search_field_name ] TO FIELD-SYMBOL(<field>).
+    ELSEIF line_exists( ds_fields[ field_alias = i_fieldname_search-search_field_name ] ).
+      ASSIGN ds_fields[ field_alias = i_fieldname_search-search_field_name ] TO <field>.
     ENDIF.
+* search_field_name  type fieldname
+* base_tabable  type vibastab
+* base_field_name  type vibasfld
 
+    IF <field> IS ASSIGNED.
+      me->/cadaxo/if_mds_api_datasource~header-field_search-search_field_name = <field>-field_name.
+      IF me->/cadaxo/if_mds_api_datasource~header-sqlviewname IS NOT INITIAL.
+        /cadaxo/if_mds_api_datasource~header-field_search-search_object_name = me->/cadaxo/if_mds_api_datasource~header-sqlviewname.
+      ELSE.
+        /cadaxo/if_mds_api_datasource~header-field_search-search_object_name = me->/cadaxo/if_mds_api_datasource~header-name.
+      ENDIF.
+      IF <field>-base_field_name IS NOT INITIAL.
+        /cadaxo/if_mds_api_datasource~header-field_search-base_field_name = <field>-base_field_name.
+      ELSE.
+        /cadaxo/if_mds_api_datasource~header-field_search-base_field_name = i_fieldname_search-search_field_name.
+      ENDIF.
+      IF <field>-base_tabable IS NOT INITIAL.
+        /cadaxo/if_mds_api_datasource~header-field_search-base_object_name = <field>-base_tabable.
+      ELSE.
+        /cadaxo/if_mds_api_datasource~header-field_search-base_object_name = me->/cadaxo/if_mds_api_datasource~header-name.
+      ENDIF.
+    ENDIF.
+    r_field_source_ds = /cadaxo/if_mds_api_datasource~header-field_search.
   ENDMETHOD.
 
+
+  METHOD /cadaxo/if_mds_api_datasource~uses_field.
+
+*    IF i_fieldname_search-base_object_name IS NOT INITIAL.
+*      IF me->/cadaxo/if_mds_api_datasource~header-name <> i_fieldname_search-base_object_name
+*         AND me->/cadaxo/if_mds_api_datasource~header-sqlviewname <> i_fieldname_search-base_object_name.
+*        RETURN.
+*      ENDIF.
+*    ENDIF.
+    IF me->ds_fields IS INITIAL.
+      me->/cadaxo/if_mds_api_datasource~get_fields( ).
+    ENDIF.
+
+    IF line_exists( ds_fields[ base_field_name = i_fieldname_search-base_field_name
+                               base_tabable    = i_fieldname_search-base_object_name ] ).
+      ASSIGN ds_fields[ base_field_name = i_fieldname_search-base_field_name
+                        base_tabable    = i_fieldname_search-base_object_name ] TO FIELD-SYMBOL(<field>).
+
+      me->/cadaxo/if_mds_api_datasource~header-field_search-search_field_name = <field>-field_name.
+      IF me->/cadaxo/if_mds_api_datasource~header-sqlviewname IS NOT INITIAL.
+        /cadaxo/if_mds_api_datasource~header-field_search-search_object_name = me->/cadaxo/if_mds_api_datasource~header-sqlviewname.
+      ELSE.
+        /cadaxo/if_mds_api_datasource~header-field_search-search_object_name = me->/cadaxo/if_mds_api_datasource~header-name.
+      ENDIF.
+      IF <field>-base_field_name IS NOT INITIAL.
+        /cadaxo/if_mds_api_datasource~header-field_search-base_field_name = <field>-base_field_name.
+      ELSE.
+        /cadaxo/if_mds_api_datasource~header-field_search-base_field_name = i_fieldname_search-search_field_name.
+      ENDIF.
+      IF <field>-base_tabable IS NOT INITIAL.
+        /cadaxo/if_mds_api_datasource~header-field_search-base_object_name = <field>-base_tabable.
+      ELSE.
+        /cadaxo/if_mds_api_datasource~header-field_search-base_object_name = me->/cadaxo/if_mds_api_datasource~header-name.
+      ENDIF.
+    ENDIF.
+    r_field_source_ds = /cadaxo/if_mds_api_datasource~header-field_search.
+  ENDMETHOD.
 ENDCLASS.
