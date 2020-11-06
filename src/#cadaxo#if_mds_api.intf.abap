@@ -8,7 +8,7 @@ INTERFACE /cadaxo/if_mds_api
          ty_fields TYPE STANDARD TABLE OF ty_field WITH DEFAULT KEY.
 
   TYPES: BEGIN OF ty_annotation.
-  INCLUDE TYPE /cadaxo/mds_an_semkey AS semkey.
+      INCLUDE TYPE /cadaxo/mds_an_semkey AS semkey.
   TYPES:
     annotation_id TYPE /cadaxo/mds_annotation_id,
     position      TYPE int4,
@@ -18,7 +18,7 @@ INTERFACE /cadaxo/if_mds_api
     ty_annotations TYPE STANDARD TABLE OF ty_annotation WITH DEFAULT KEY.
 
   TYPES: BEGIN OF ty_parameter.
-  INCLUDE TYPE /cadaxo/mds_pr_semkey AS semkey.
+      INCLUDE TYPE /cadaxo/mds_pr_semkey AS semkey.
   TYPES:
     parameter_id TYPE /cadaxo/mds_parameter_id,
     position     TYPE int4,
@@ -28,7 +28,7 @@ INTERFACE /cadaxo/if_mds_api
     ty_parameters TYPE STANDARD TABLE OF ty_parameter WITH DEFAULT KEY.
 
   TYPES: BEGIN OF ty_relation.
-  INCLUDE TYPE /cadaxo/mds_lk_semkey AS semkey.
+      INCLUDE TYPE /cadaxo/mds_lk_semkey AS semkey.
   TYPES:
     link_id       TYPE /cadaxo/mds_link_id,
     relation_type TYPE string,
@@ -46,14 +46,15 @@ INTERFACE /cadaxo/if_mds_api
 *           base_field_name    TYPE vibasfld,
 *         END OF ty_field_source_ds.
   TYPES: BEGIN OF ty_datasource.
-  INCLUDE TYPE /cadaxo/mds_ds_semkey AS semkey.
+      INCLUDE TYPE /cadaxo/mds_ds_semkey AS semkey.
   TYPES:
     ds_id       TYPE /cadaxo/mds_ds_id,
     changed_by  TYPE as4user,
     changed_at  TYPE timestampl,
     description TYPE as4text,
-    sqlviewname TYPE tabname.
-  INCLUDE TYPE /cadaxo/mds_field_search AS field_search.
+    sqlviewname TYPE tabname,
+    cs_name     TYPE /cadaxo/mds_object_name.
+      INCLUDE TYPE /cadaxo/mds_field_search AS field_search.
   TYPES:
     depth TYPE i,
     role  TYPE int4,

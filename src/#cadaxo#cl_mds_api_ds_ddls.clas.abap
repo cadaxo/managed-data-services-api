@@ -182,7 +182,7 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
          FROM ddheadanno
          WHERE strucobjn = @me->/cadaxo/if_mds_api_datasource~header-name
          ORDER BY position
-         into table @DATA(annotations).
+         INTO TABLE @DATA(annotations).
 
     LOOP AT annotations ASSIGNING FIELD-SYMBOL(<annotation>).
       APPEND VALUE #( annotation_id    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_an_semkey( object_id  = me->/cadaxo/if_mds_api_datasource~header-ds_id
@@ -197,7 +197,7 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
            FROM ddfieldanno
            WHERE strucobjn = @me->/cadaxo/if_mds_api_datasource~header-name
            ORDER BY position
-           into table @DATA(field_annotations).
+           INTO TABLE @DATA(field_annotations).
     LOOP AT field_annotations ASSIGNING FIELD-SYMBOL(<field_annotation>).
 
 
@@ -224,7 +224,7 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
            WHERE strucobjn = @me->/cadaxo/if_mds_api_datasource~header-name
              AND cdsfields~as4local  = @/cadaxo/cl_mds_api_ds=>version-active
            ORDER BY position
-           into table @me->ds_fields.
+           INTO TABLE @me->ds_fields.
 
     LOOP AT me->ds_fields ASSIGNING FIELD-SYMBOL(<ds_field>).
 
@@ -250,6 +250,7 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
     super->constructor( i_sematic_key ).
 
     SELECT SINGLE head~strucobjn AS name,
+                  head~strucobjn_raw AS cs_name,
                   head~chguser AS changed_by,
 *                  head~chgdate as changed_at,
                   text~ddtext  AS description,

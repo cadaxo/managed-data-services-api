@@ -14,17 +14,19 @@ CLASS /cadaxo/cl_mds_api DEFINITION
   PROTECTED SECTION.
 
     CLASS-DATA instance TYPE REF TO /cadaxo/if_mds_api.
-  PRIVATE SECTION.
-
     CLASS-DATA id_handler TYPE REF TO /cadaxo/cl_mds_id.
+
+    TYPES: BEGIN OF ty_recusion,
+             ds_name TYPE /cadaxo/mds_object_name,
+           END OF ty_recusion,
+           ty_recusions TYPE STANDARD TABLE OF ty_recusion.
+    DATA: recursions TYPE ty_recusions.
+
     METHODS get_ds_reader IMPORTING i_ds_id            TYPE /cadaxo/mds_ds_id
                           RETURNING VALUE(r_ds_reader) TYPE REF TO /cadaxo/if_mds_api_datasource.
-    METHODS search_field
-      IMPORTING
-        is_role           LIKE /cadaxo/if_mds_api=>ds_role-child
-      CHANGING
-        c_field_source_ds TYPE /cadaxo/mds_field_search
-        c_related_ds      TYPE /cadaxo/if_mds_api=>ty_datasource.
+    METHODS search_field IMPORTING is_role           LIKE /cadaxo/if_mds_api=>ds_role-child
+                         CHANGING  c_field_source_ds TYPE /cadaxo/mds_field_search
+                                   c_related_ds      TYPE /cadaxo/if_mds_api=>ty_datasource.
 ENDCLASS.
 
 
@@ -83,15 +85,31 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
     DATA(ds_reader) = me->get_ds_reader( i_ds_id ).
     ds_reader->set_role( i_as_role ).
+    DATA(ds_name) = ds_reader->get_datasource( )-name.
+
+    IF ds_reader->header-role = /cadaxo/if_mds_api~ds_role-main.
+      me->recursions = VALUE #( ( ds_name = ds_name ) ).
+    ELSE.
+      IF line_exists( me->recursions[ ds_name = ds_name ] ).
+        RETURN.
+      ELSE.
+        APPEND VALUE #( ds_name = ds_name ) TO me->recursions.
+      ENDIF.
+
+    ENDIF.
+
 
     IF  i_fieldname_filter IS NOT INITIAL.
 
       DATA(field_source_ds) = ds_reader->has_field( VALUE #( search_field_name = i_fieldname_filter ) ).
       DATA(field_parent_source_ds) = field_source_ds.
-      DATA(field_child_source_ds)  = field_source_ds ."VALUE /cadaxo/if_mds_api=>ty_field_source_ds( search_field_name = i_fieldname_filter search_object_name = ds_reader->header-sqlviewname ).
+      DATA(field_child_source_ds)  = field_source_ds.
 
     ENDIF.
 
+*    IF ds_name = 'SEPM_I_LANGUAGETEXT'.
+*      BREAK-POINT.
+*    ENDIF.
     APPEND ds_reader->get_datasource( ) TO r_datasources.
 
     ds_reader->build_related_entities( ).
@@ -160,7 +178,11 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
   METHOD /cadaxo/if_mds_api~get_datasources_by_semkey.
 
-    DATA(id) = me->build_object_id( i_ds_semkey ).
+    DATA(ds_semkey) = i_ds_semkey.
+    ds_semkey-name = to_upper( ds_semkey-name ).
+    ds_semkey-type = to_upper( ds_semkey-type ).
+
+    DATA(id) = me->build_object_id( ds_semkey ).
 
     r_datasources = me->/cadaxo/if_mds_api~get_datasources_by_id( i_ds_id            = id
                                                                   i_fieldname_filter = i_fieldname_filter ).
