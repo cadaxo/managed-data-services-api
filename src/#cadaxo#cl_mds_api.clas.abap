@@ -111,7 +111,6 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
       DATA(related_dss) = /cadaxo/if_mds_api~get_datasources_by_id( i_ds_id   = <relation>-object_id2
                                                                     i_as_role = as_role ).
 
-
       LOOP AT related_dss ASSIGNING FIELD-SYMBOL(<related_ds>).
 
         IF NOT line_exists( r_datasources[ ds_id = <related_ds>-ds_id ] ).
@@ -121,6 +120,7 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
                                  c_related_ds      = <related_ds> ).
 
           APPEND <related_ds> TO r_datasources.
+
         ENDIF.
 
       ENDLOOP.
@@ -128,6 +128,7 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+
 
   METHOD search_field.
 

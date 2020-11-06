@@ -12,18 +12,6 @@ CLASS /cadaxo/cl_mds_api_ds DEFINITION
     METHODS constructor IMPORTING i_sematic_key TYPE /cadaxo/mds_ds_semkey.
 
   PROTECTED SECTION.
-    CLASS-DATA id_handler TYPE REF TO /cadaxo/cl_mds_id.
-
-    TYPES: BEGIN OF ty_instance,
-             ds_id    TYPE /cadaxo/mds_ds_id,
-             instance TYPE REF TO /cadaxo/if_mds_api_datasource,
-           END OF ty_instance,
-           ty_instances TYPE SORTED TABLE OF ty_instance WITH UNIQUE KEY ds_id.
-    CLASS-DATA instances TYPE ty_instances.
-
-    CONSTANTS: BEGIN OF version,
-                 active TYPE as4local VALUE 'A',
-               END OF version.
 
     TYPES: BEGIN OF ty_ds_field,
              field_name      TYPE fieldname,
@@ -34,7 +22,44 @@ CLASS /cadaxo/cl_mds_api_ds DEFINITION
            END OF ty_ds_field,
            ty_ds_fields TYPE STANDARD TABLE OF ty_ds_field.
 
-    DATA: ds_fields TYPE ty_ds_fields.
+    TYPES: BEGIN OF ty_instance,
+             ds_id    TYPE /cadaxo/mds_ds_id,
+             instance TYPE REF TO /cadaxo/if_mds_api_datasource,
+           END OF ty_instance,
+           ty_instances TYPE SORTED TABLE OF ty_instance WITH UNIQUE KEY ds_id.
+
+    CONSTANTS: BEGIN OF version,
+                 active TYPE as4local VALUE 'A',
+               END OF version.
+
+    CONSTANTS: BEGIN OF relation_cust,
+                 BEGIN OF base,
+                   type        TYPE string VALUE 'BASE',
+                   description TYPE string VALUE 'as select from',
+                   role        TYPE /cadaxo/if_mds_api=>ty_ds_role VALUE /cadaxo/if_mds_api=>ds_role-parent,
+                 END OF base,
+                 BEGIN OF enhancement,
+                   type        TYPE string VALUE 'ENHANCEMENT',
+                   description TYPE string VALUE 'enhances',
+                   role        TYPE /cadaxo/if_mds_api=>ty_ds_role VALUE /cadaxo/if_mds_api=>ds_role-parent,
+                 END OF enhancement,
+                 BEGIN OF isused,
+                   type        TYPE string VALUE 'ISUSED',
+                   description TYPE string VALUE 'is used in',
+                   role        TYPE /cadaxo/if_mds_api=>ty_ds_role VALUE /cadaxo/if_mds_api=>ds_role-child,
+                 END OF isused,
+                 BEGIN OF sqlview,
+                   type        TYPE string VALUE 'SQLVIEW',
+                   description TYPE string VALUE 'has SQL View',
+                   role        TYPE /cadaxo/if_mds_api=>ty_ds_role VALUE /cadaxo/if_mds_api=>ds_role-parent,
+                 END OF sqlview,
+               END OF relation_cust.
+
+    CLASS-DATA instances TYPE ty_instances.
+    CLASS-DATA id_handler TYPE REF TO /cadaxo/cl_mds_id.
+
+    DATA: ds_fields    TYPE ty_ds_fields.
+    DATA: related_read TYPE abap_bool.
 
 ENDCLASS.
 
@@ -113,7 +138,9 @@ CLASS /cadaxo/cl_mds_api_ds IMPLEMENTATION.
   METHOD /cadaxo/if_mds_api_datasource~set_role.
 
     me->/cadaxo/if_mds_api_datasource~header-depth = 0.
-    me->/cadaxo/if_mds_api_datasource~header-role  = i_role.
+    IF me->/cadaxo/if_mds_api_datasource~header-role = /cadaxo/if_mds_api=>ds_role-main.
+      me->/cadaxo/if_mds_api_datasource~header-role  = i_role.
+    ENDIF.
 
   ENDMETHOD.
 

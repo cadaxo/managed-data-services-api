@@ -1,4 +1,4 @@
-CLASS /CADAXO/CL_MDS_API_DS_DDLS DEFINITION INHERITING FROM /cadaxo/cl_mds_api_ds
+CLASS /cadaxo/cl_mds_api_ds_ddls DEFINITION INHERITING FROM /cadaxo/cl_mds_api_ds
   PUBLIC
   CREATE PUBLIC .
 
@@ -10,56 +10,76 @@ CLASS /CADAXO/CL_MDS_API_DS_DDLS DEFINITION INHERITING FROM /cadaxo/cl_mds_api_d
     METHODS /cadaxo/if_mds_api_datasource~get_parameters REDEFINITION.
     METHODS /cadaxo/if_mds_api_datasource~get_annotations REDEFINITION.
     METHODS /cadaxo/if_mds_api_datasource~get_action_links REDEFINITION.
+
 ENDCLASS.
 
 
 
-CLASS /CADAXO/CL_MDS_API_DS_DDLS IMPLEMENTATION.
+CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
 
 
   METHOD /cadaxo/if_mds_api_datasource~build_related_entities.
 
-    IF me->/cadaxo/if_mds_api_datasource~header-role <= /cadaxo/if_mds_api=>ds_role-main.
+    IF me->related_read = abap_false.
+
+      IF me->/cadaxo/if_mds_api_datasource~header-role <= /cadaxo/if_mds_api=>ds_role-main.
 * get associations
-      SELECT associationname, typekind_t, assorigin, strucobjn_t, card_min, card_max
-        FROM dd08b
-        INTO TABLE @DATA(stob_associations)
-        WHERE strucobjn = @me->/cadaxo/if_mds_api_datasource~header-name
-          AND as4local  = @version-active.
+        SELECT associationname, typekind_t, assorigin, strucobjn_t, card_min, card_max
+          FROM dd08b
+          INTO TABLE @DATA(stob_associations)
+          WHERE strucobjn = @me->/cadaxo/if_mds_api_datasource~header-name
+            AND as4local  = @version-active.
 
-      LOOP AT stob_associations ASSIGNING FIELD-SYMBOL(<stob_association>).
+        LOOP AT stob_associations ASSIGNING FIELD-SYMBOL(<stob_association>).
 
-        APPEND VALUE #( link_id       = 'GET_ID'
-                        object_id1    = me->/cadaxo/if_mds_api_datasource~header-ds_id
-                        object_id2    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey( type = SWITCH #( <stob_association>-typekind_t
-                                                                                                                              WHEN 'T' THEN /cadaxo/if_mds_api_datasource~type-table
-                                                                                                                              WHEN 'B' THEN /cadaxo/if_mds_api_datasource~type-datadefinition )
-                                                                                                          name = <stob_association>-strucobjn_t ) )
-                        description   = <stob_association>-associationname
-                        card_min      = <stob_association>-card_min
-                        card_max      = <stob_association>-card_max
-                        relation_type = SWITCH #( <stob_association>-assorigin WHEN 'E' THEN 'EXTERNAL_ASSOCIATION'
-                                                                                        ELSE 'ASSOCIATION' ) ) TO me->/cadaxo/if_mds_api_datasource~relations.
+          APPEND VALUE #( link_id       = 'GET_ID'
+                          object_id1    = me->/cadaxo/if_mds_api_datasource~header-ds_id
+                          object_id2    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey( type = SWITCH #( <stob_association>-typekind_t
+                                                                                                                                WHEN 'T' THEN /cadaxo/if_mds_api_datasource~type-table
+                                                                                                                                WHEN 'B' THEN /cadaxo/if_mds_api_datasource~type-datadefinition )
+                                                                                                            name = <stob_association>-strucobjn_t ) )
+                          description   = <stob_association>-associationname
+                          card_min      = <stob_association>-card_min
+                          card_max      = <stob_association>-card_max
+                          relation_type = SWITCH #( <stob_association>-assorigin WHEN 'E' THEN 'EXTERNAL_ASSOCIATION'
+                                                                                          ELSE 'ASSOCIATION' ) ) TO me->/cadaxo/if_mds_api_datasource~relations.
 
-      ENDLOOP.
+        ENDLOOP.
+
+*    IF me->/cadaxo/if_mds_api_datasource~header-name = 'ZCDX_ORDER_CDS_00'.
+*      BREAK-POINT.
+*    ENDIF.
 
 * Base Tables
-      SELECT tabname
-             FROM dd26s
-             WHERE viewname = @/cadaxo/if_mds_api_datasource~header-sqlviewname
-               AND as4local = @version-active
-             INTO TABLE @DATA(base_tables).
+*
+        SELECT base~tabname AS basetable, issqlview~strucobjn AS basecdsview
+               FROM dd26s AS base
+               LEFT OUTER JOIN dd02bnd AS issqlview
+                 ON  issqlview~dbtabname = base~tabname
+                 AND issqlview~as4local  = base~as4local
+               WHERE base~viewname = @/cadaxo/if_mds_api_datasource~header-sqlviewname
+                 AND base~as4local = @version-active
+               INTO TABLE @DATA(bases).
 
-      LOOP AT base_tables ASSIGNING FIELD-SYMBOL(<base_table>).
+        LOOP AT bases ASSIGNING FIELD-SYMBOL(<base>).
 
-        APPEND VALUE #( link_id       = 'GET_ID'
-                        object_id1    = me->/cadaxo/if_mds_api_datasource~header-ds_id
-                        object_id2    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey(  type = /cadaxo/if_mds_api_datasource~type-table
-                                                                                                           name = <base_table>-tabname ) )
-                        description   = 'as select from'
-                        relation_type = 'BASE' ) TO me->/cadaxo/if_mds_api_datasource~relations.
+          IF <base>-basecdsview IS INITIAL.
+            DATA(base_semkey) = VALUE /cadaxo/mds_ds_semkey( type = /cadaxo/if_mds_api_datasource~type-table
+                                                             name = <base>-basetable ).
+          ELSE.
+            base_semkey = VALUE /cadaxo/mds_ds_semkey( type = /cadaxo/if_mds_api_datasource~type-datadefinition
+                                                       name = <base>-basecdsview ).
 
-      ENDLOOP.
+          ENDIF.
+
+          APPEND VALUE #( link_id       = 'GET_ID'
+                          object_id1    = me->/cadaxo/if_mds_api_datasource~header-ds_id
+                          object_id2    = /cadaxo/cl_mds_api=>build_object_id( base_semkey )
+                          description   = relation_cust-base-description
+                          relation_type = relation_cust-base-type ) TO me->/cadaxo/if_mds_api_datasource~relations.
+
+        ENDLOOP.
+
 
 ** get extensions
 *    SELECT *
@@ -95,56 +115,61 @@ CLASS /CADAXO/CL_MDS_API_DS_DDLS IMPLEMENTATION.
 *    ENDLOOP.
 
 * get enhancements
-      SELECT *
-             FROM dd02b
-             WHERE parentname    = @me->/cadaxo/if_mds_api_datasource~header-name
-               AND as4local      = @version-active
-               AND strucobjclass = 'APPEND'
-             INTO TABLE @DATA(stob_append_headers).
+        SELECT *
+               FROM dd02b
+               WHERE parentname    = @me->/cadaxo/if_mds_api_datasource~header-name
+                 AND as4local      = @version-active
+                 AND strucobjclass = 'APPEND'
+               INTO TABLE @DATA(stob_append_headers).
 
-      LOOP AT stob_append_headers ASSIGNING FIELD-SYMBOL(<stob_append_header>).
+        LOOP AT stob_append_headers ASSIGNING FIELD-SYMBOL(<stob_append_header>).
 
-        APPEND VALUE #( link_id       = 'GET_ID'
-                        object_id1    = me->/cadaxo/if_mds_api_datasource~header-ds_id
-                        object_id2    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey(  type = /cadaxo/if_mds_api_datasource~type-datadefinition
-                                                                                                           name = <stob_append_header>-strucobjn ) )
-                        description   = 'enhanced'
-                        card_min      = 1
-                        card_max      = 1
-                        relation_type = 'ENHANCEMENT' ) TO me->/cadaxo/if_mds_api_datasource~relations.
+          APPEND VALUE #( link_id       = 'GET_ID'
+                          object_id1    = me->/cadaxo/if_mds_api_datasource~header-ds_id
+                          object_id2    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey(  type = /cadaxo/if_mds_api_datasource~type-datadefinition
+                                                                                                             name = <stob_append_header>-strucobjn ) )
+                          card_min      = 1
+                          card_max      = 1
+                          description   = relation_cust-enhancement-description
+                          relation_type = relation_cust-enhancement-type ) TO me->/cadaxo/if_mds_api_datasource~relations.
 
-      ENDLOOP.
-    ENDIF.
+        ENDLOOP.
+      ENDIF.
 
-    IF me->/cadaxo/if_mds_api_datasource~header-role >= /cadaxo/if_mds_api=>ds_role-main.
+      IF me->/cadaxo/if_mds_api_datasource~header-role >= /cadaxo/if_mds_api=>ds_role-main.
 
 * is base table of
-      SELECT b~strucobjn
-             FROM dd26s AS a
-             INNER JOIN dd02bnd AS b
-                   ON b~dbtabname = a~viewname
-             WHERE a~tabname  = @/cadaxo/if_mds_api_datasource~header-sqlviewname
-               AND b~as4local = @version-active
-             INTO TABLE @DATA(table_sources).
-      SELECT strucobjn
-        FROM dd08b
-        APPENDING TABLE @table_sources
-        WHERE strucobjn_t = @me->/cadaxo/if_mds_api_datasource~header-name
-          AND as4local  = @version-active.
-      LOOP AT table_sources ASSIGNING FIELD-SYMBOL(<table_source>).
+        SELECT b~strucobjn
+               FROM dd26s AS a
+               INNER JOIN dd02bnd AS b
+                     ON b~dbtabname = a~viewname
+               WHERE a~tabname  = @/cadaxo/if_mds_api_datasource~header-sqlviewname
+                 AND b~as4local = @version-active
+               INTO TABLE @DATA(table_sources).
+        SELECT strucobjn
+          FROM dd08b
+          APPENDING TABLE @table_sources
+          WHERE strucobjn_t = @me->/cadaxo/if_mds_api_datasource~header-name
+            AND as4local  = @version-active.
+        LOOP AT table_sources ASSIGNING FIELD-SYMBOL(<table_source>).
 
-        APPEND VALUE #( link_id       = 'GET_ID'
-                        object_id1    = me->/cadaxo/if_mds_api_datasource~header-ds_id
-                        object_id2    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey(  type = /cadaxo/if_mds_api_datasource~type-datadefinition
-                                                                                                           name = <table_source>-strucobjn ) )
-                        description   = 'is used in'
-                        relation_type = 'ISUSED' ) TO me->/cadaxo/if_mds_api_datasource~relations.
+          APPEND VALUE #( link_id       = 'GET_ID'
+                          object_id1    = me->/cadaxo/if_mds_api_datasource~header-ds_id
+                          object_id2    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey(  type = /cadaxo/if_mds_api_datasource~type-datadefinition
+                                                                                                             name = <table_source>-strucobjn ) )
+                          description   = relation_cust-isused-description
+                          relation_type = relation_cust-isused-type ) TO me->/cadaxo/if_mds_api_datasource~relations.
 
-      ENDLOOP.
+        ENDLOOP.
+
+      ENDIF.
+
 
       LOOP AT me->/cadaxo/if_mds_api_datasource~relations ASSIGNING FIELD-SYMBOL(<relation>) WHERE link_id = 'GET_ID'.
         <relation>-link_id = /cadaxo/cl_mds_api=>build_object_id( <relation>-semkey ).
       ENDLOOP.
+
+      me->related_read = abap_true.
 
     ENDIF.
 
@@ -242,6 +267,16 @@ CLASS /CADAXO/CL_MDS_API_DS_DDLS IMPLEMENTATION.
     IF sy-subrc <> 0.
       MESSAGE '' TYPE 'X'.
     ENDIF.
+
+    DATA(sqlview_object_id) = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey(  type = /cadaxo/if_mds_api_datasource~type-table
+                                                                                                 name = me->/cadaxo/if_mds_api_datasource~header-sqlviewname ) ).
+
+    APPEND VALUE #( link_id       = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_lk_semkey( object_id1 = me->/cadaxo/if_mds_api_datasource~header-ds_id
+                                                                                                      object_id2 = sqlview_object_id ) )
+                    object_id1    = me->/cadaxo/if_mds_api_datasource~header-ds_id
+                    object_id2    = sqlview_object_id
+                    description   = relation_cust-sqlview-description
+                    relation_type = relation_cust-sqlview-type ) TO me->/cadaxo/if_mds_api_datasource~relations.
 
   ENDMETHOD.
 
