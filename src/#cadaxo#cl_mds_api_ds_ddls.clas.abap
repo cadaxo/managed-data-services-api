@@ -46,9 +46,31 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
 
         ENDLOOP.
 
+
 *    IF me->/cadaxo/if_mds_api_datasource~header-name = 'ZCDX_ORDER_CDS_00'.
 *      BREAK-POINT.
 *    ENDIF.
+
+* get enhancements
+        SELECT strucobjn
+               FROM dd02b
+               WHERE parentname    = @me->/cadaxo/if_mds_api_datasource~header-name
+                 AND as4local      = @version-active
+                 AND strucobjclass = 'APPEND'
+               INTO TABLE @DATA(stob_append_headers).
+
+        LOOP AT stob_append_headers ASSIGNING FIELD-SYMBOL(<stob_append_header>).
+
+          APPEND VALUE #( link_id       = 'GET_ID'
+                          object_id1    = me->/cadaxo/if_mds_api_datasource~header-ds_id
+                          object_id2    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey( type = /cadaxo/if_mds_api_datasource~type-datadefinition
+                                                                                                            name = <stob_append_header>-strucobjn ) )
+                          card_min      = 1
+                          card_max      = 1
+                          description   = relation_cust-enhancement-description
+                          relation_type = relation_cust-enhancement-type ) TO me->/cadaxo/if_mds_api_datasource~relations.
+
+        ENDLOOP.
 
 * Base Tables
 *
@@ -103,30 +125,9 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
 *                          relation_type = relation_cust-enhancement-type ) TO me->/cadaxo/if_mds_api_datasource~relations.
 *        ENDLOOP.
 
-* get enhancements
-        SELECT *
-               FROM dd02b
-               WHERE parentname    = @me->/cadaxo/if_mds_api_datasource~header-name
-                 AND as4local      = @version-active
-                 AND strucobjclass = 'APPEND'
-               INTO TABLE @DATA(stob_append_headers).
-
-        LOOP AT stob_append_headers ASSIGNING FIELD-SYMBOL(<stob_append_header>).
-
-          APPEND VALUE #( link_id       = 'GET_ID'
-                          object_id1    = me->/cadaxo/if_mds_api_datasource~header-ds_id
-                          object_id2    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey(  type = /cadaxo/if_mds_api_datasource~type-datadefinition
-                                                                                                             name = <stob_append_header>-strucobjn ) )
-                          card_min      = 1
-                          card_max      = 1
-                          description   = relation_cust-enhancement-description
-                          relation_type = relation_cust-enhancement-type ) TO me->/cadaxo/if_mds_api_datasource~relations.
-
-        ENDLOOP.
       ENDIF.
 
       IF me->/cadaxo/if_mds_api_datasource~header-role >= /cadaxo/if_mds_api=>ds_role-main.
-
 * is base table of
         SELECT b~strucobjn
                FROM dd26s AS a
@@ -204,14 +205,16 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
   METHOD /cadaxo/if_mds_api_datasource~get_fields.
 
     SELECT cdsfields~fieldname AS field_name, cdsfields~fieldname_raw AS field_alias, cdsfields~position,
-           sqlviewfields~tabname AS base_tabable, sqlviewfields~fieldname AS base_field_name
+           sqlviewfields~tabname AS base_tabable, sqlviewfields~fieldname AS base_field_name,
+           cdsfields~fieldname AS origin_field_name,
+           cdsfields~appendstruname AS origin_append_stru_name
            FROM dd03nd AS cdsfields
            INNER JOIN dd27s AS sqlviewfields
-                 ON  sqlviewfields~viewname  = @me->/cadaxo/if_mds_api_datasource~header-sqlviewname
-                 AND sqlviewfields~viewfield = cdsfields~fieldname
+                 ON  sqlviewfields~viewfield = cdsfields~fieldname
                  AND sqlviewfields~as4local  = cdsfields~as4local
-           WHERE strucobjn = @me->/cadaxo/if_mds_api_datasource~header-name
-             AND cdsfields~as4local  = @/cadaxo/cl_mds_api_ds=>version-active
+           WHERE cdsfields~strucobjn     = @me->/cadaxo/if_mds_api_datasource~header-name
+             AND sqlviewfields~viewname  = @me->/cadaxo/if_mds_api_datasource~header-sqlviewname
+             AND cdsfields~as4local      = @/cadaxo/cl_mds_api_ds=>version-active
            ORDER BY position
            into table @me->ds_fields.
 

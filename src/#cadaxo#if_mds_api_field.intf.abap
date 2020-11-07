@@ -2,17 +2,18 @@ INTERFACE /cadaxo/if_mds_api_field
   PUBLIC .
 
   TYPES: BEGIN OF ty_data,
-           field_alias     TYPE fieldname,
-*VIEWFIELD   type VIEWFIELD,
-           base_tabable    TYPE tabname,
-           base_field_name TYPE fieldname,
-           position        TYPE ddfdpos,
-           description     TYPE string,
-           object_state    TYPE int4,
-           datatype        TYPE datatype_d,
-           length          TYPE ddleng,
-           decimals        TYPE decimals,
-           data_element    TYPE rollname,
+           field_alias            TYPE fieldname,
+           base_table             TYPE tabname,
+           base_field_name        TYPE fieldname,
+           origin_field_name      TYPE ddfldorigin,
+           origin_appendstru_name TYPE appname,
+           position               TYPE ddfdpos,
+           description            TYPE string,
+           object_state           TYPE int4,
+           datatype               TYPE datatype_d,
+           length                 TYPE ddleng,
+           decimals               TYPE decimals,
+           data_element           TYPE rollname,
          END OF ty_data.
 
   TYPES: BEGIN OF ty_field.

@@ -17,7 +17,8 @@ CLASS /cadaxo/cl_mds_api DEFINITION
     CLASS-DATA id_handler TYPE REF TO /cadaxo/cl_mds_id.
 
     TYPES: BEGIN OF ty_recusion,
-             ds_name TYPE /cadaxo/mds_object_name,
+             ds_name     TYPE /cadaxo/mds_object_name,
+             datasources TYPE /cadaxo/if_mds_api=>ty_datasources,
            END OF ty_recusion,
            ty_recusions TYPE STANDARD TABLE OF ty_recusion.
     DATA: recursions TYPE ty_recusions.
@@ -88,16 +89,21 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
     DATA(ds_name) = ds_reader->get_datasource( )-name.
 
     IF ds_reader->header-role = /cadaxo/if_mds_api~ds_role-main.
-      me->recursions = VALUE #( ( ds_name = ds_name ) ).
+      APPEND VALUE #( ds_name = ds_name ) TO me->recursions ASSIGNING FIELD-SYMBOL(<recursion>).
     ELSE.
       IF line_exists( me->recursions[ ds_name = ds_name ] ).
+        IF i_as_role = /cadaxo/if_mds_api~ds_role-main.
+          "2nd/independent request
+          r_datasources = me->recursions[ ds_name = ds_name ]-datasources.
+        ENDIF.
+        "recursive Call
         RETURN.
+
       ELSE.
-        APPEND VALUE #( ds_name = ds_name ) TO me->recursions.
+        APPEND VALUE #( ds_name = ds_name ) TO me->recursions ASSIGNING <recursion>.
       ENDIF.
 
     ENDIF.
-
 
     IF  i_fieldname_filter IS NOT INITIAL.
 
@@ -107,9 +113,6 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
     ENDIF.
 
-*    IF ds_name = 'SEPM_I_LANGUAGETEXT'.
-*      BREAK-POINT.
-*    ENDIF.
     APPEND ds_reader->get_datasource( ) TO r_datasources.
 
     ds_reader->build_related_entities( ).
@@ -133,9 +136,12 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
         IF NOT line_exists( r_datasources[ ds_id = <related_ds>-ds_id ] ).
 
-          search_field( EXPORTING is_role          = as_role
-                        CHANGING c_field_source_ds = <field_source_ds>
-                                 c_related_ds      = <related_ds> ).
+          IF <field_source_ds> IS NOT INITIAL.
+
+            me->search_field( EXPORTING is_role           = as_role
+                              CHANGING  c_field_source_ds = <field_source_ds>
+                                        c_related_ds      = <related_ds> ).
+          ENDIF.
 
           APPEND <related_ds> TO r_datasources.
 
@@ -145,32 +151,30 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
     ENDLOOP.
 
+    <recursion>-datasources = r_datasources.
+
   ENDMETHOD.
 
 
   METHOD search_field.
 
-    IF c_field_source_ds IS NOT INITIAL.
+    IF is_role = /cadaxo/if_mds_api=>ds_role-parent.
+      c_field_source_ds = VALUE /cadaxo/mds_field_search( BASE c_field_source_ds search_object_name = c_field_source_ds-base_object_name
+                                                                                 search_field_name  = c_field_source_ds-base_field_name ).
 
-      IF is_role = /cadaxo/if_mds_api=>ds_role-parent.
-        c_field_source_ds = VALUE /cadaxo/mds_field_search( BASE c_field_source_ds search_object_name = c_field_source_ds-base_object_name
-                                                                                   search_field_name  = c_field_source_ds-base_field_name ).
+      DATA(field_source_related_ds) = c_related_ds-api->has_field( c_field_source_ds ).
 
-        DATA(field_source_related_ds) = c_related_ds-api->has_field( c_field_source_ds ).
+    ELSEIF is_role = /cadaxo/if_mds_api=>ds_role-child.
+      c_field_source_ds = VALUE #( BASE c_field_source_ds base_object_name = c_field_source_ds-search_object_name
+                                                                      base_field_name  = c_field_source_ds-search_field_name ).
 
-      ELSEIF is_role = /cadaxo/if_mds_api=>ds_role-child.
-        c_field_source_ds = VALUE #( BASE c_field_source_ds base_object_name = c_field_source_ds-search_object_name
-                                                                        base_field_name  = c_field_source_ds-search_field_name ).
+      field_source_related_ds = c_related_ds-api->uses_field( c_field_source_ds ).
+    ENDIF.
 
-        field_source_related_ds = c_related_ds-api->uses_field( c_field_source_ds ).
-      ENDIF.
+    c_related_ds = CORRESPONDING #( BASE ( c_related_ds ) field_source_related_ds ).
 
-      c_related_ds = CORRESPONDING #( BASE ( c_related_ds ) field_source_related_ds ).
-
-      IF field_source_related_ds IS NOT INITIAL.
-        c_field_source_ds = field_source_related_ds.
-      ENDIF.
-
+    IF field_source_related_ds IS NOT INITIAL.
+      c_field_source_ds = field_source_related_ds.
     ENDIF.
 
   ENDMETHOD.
@@ -194,8 +198,11 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
     DATA(datasources) = /cadaxo/if_mds_api~get_datasources_by_id( i_ds_id ).
 
-    r_datasource = datasources[ ds_id = i_ds_id ].
-
+    TRY.
+        r_datasource = datasources[ ds_id = i_ds_id ].
+      CATCH cx_root.
+        BREAK-POINT.
+    ENDTRY.
   ENDMETHOD.
 
 
