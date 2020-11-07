@@ -81,38 +81,27 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
         ENDLOOP.
 
 
-** get extensions
-*    SELECT *
-*           FROM ddlx_rt_header AS a
-*        INNER JOIN ddlxsrc AS b ON b~uuid = a~dt_uuid
-*                                AND b~ddlxname = a~ddlxname
-*        LEFT OUTER JOIN ddlxsrct AS c ON c~ddlxname = a~ddlxname
-*                                      AND c~version = b~version
-*                                      AND c~language = @sy-langu
-*        INTO TABLE @DATA(metadataextensions)
-*        WHERE a~extended_artifact = @me->/cadaxo/if_mds_api_datasource~object_name
-*          AND b~version = a.
-*    LOOP AT metadataextensions ASSIGNING FIELD-SYMBOL(<extension>).
-*      CLEAR l_node.
-*      l_node-object = 'DDLX'.
-*      l_node-id = get_id_by_object( EXPORTING i_obj_name = CONV #( <extension>-a-ddlxname )
-*                                              i_object = CONV #( l_node-object )
-*                                    IMPORTING e_created = created_flag ).
-*      l_node-name = <extension>-a-ddlxname.
-*      l_node-description = <extension>-c-description.
-*      IF created_flag = abap_true.
-*        APPEND l_node TO gt_nodes.
-*      ENDIF.
-*
-*      l_relation-idfrom = i_node_id_from.
-*      l_relation-idto = l_node-id.
-*      l_relation-description = 'extended'.
-*      l_relation-card_min = 1.
-*      l_relation-card_max = 1.
-*      l_relation-type = 'EXTENSION'.
-*      APPEND l_relation TO gt_relations.
-*
-*    ENDLOOP.
+* get extensions
+        SELECT header~ddlxname
+               FROM ddlx_rt_header AS header
+               INNER JOIN ddlxsrc AS source
+                ON  source~uuid     = header~dt_uuid
+                AND source~ddlxname = header~ddlxname
+            INTO TABLE @DATA(metadataextensions)
+            WHERE header~extended_artifact = @me->/cadaxo/if_mds_api_datasource~header-name
+              AND source~version           = @version-active.
+
+        LOOP AT metadataextensions ASSIGNING FIELD-SYMBOL(<extension>).
+
+          APPEND VALUE #( link_id       = 'GET_ID'
+                          object_id1    = me->/cadaxo/if_mds_api_datasource~header-ds_id
+                          object_id2    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey(  type = /cadaxo/if_mds_api_datasource~type-metadataextension
+                                                                                                             name = <extension>-ddlxname ) )
+                          card_min      = 1
+                          card_max      = 1
+                          description   = relation_cust-enhancement-description
+                          relation_type = relation_cust-enhancement-type ) TO me->/cadaxo/if_mds_api_datasource~relations.
+        ENDLOOP.
 
 * get enhancements
         SELECT *

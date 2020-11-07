@@ -1,8 +1,9 @@
 INTERFACE /cadaxo/if_mds_api_datasource
   PUBLIC .
   CONSTANTS: BEGIN OF type,
-               datadefinition TYPE string VALUE 'DDLS',
-               table          TYPE string VALUE 'TABL',
+               datadefinition    TYPE string VALUE 'DDLS',
+               table             TYPE string VALUE 'TABL',
+               metadataextension TYPE string VALUE 'DDLX',
              END OF type.
 
   METHODS build_related_entities.

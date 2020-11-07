@@ -53,6 +53,11 @@ CLASS /cadaxo/cl_mds_api_ds DEFINITION
                    description TYPE string VALUE 'has SQL View',
                    role        TYPE /cadaxo/if_mds_api=>ty_ds_role VALUE /cadaxo/if_mds_api=>ds_role-parent,
                  END OF sqlview,
+                 BEGIN OF metaextension,
+                   type        TYPE string VALUE 'METADATAEXTENSION',
+                   description TYPE string VALUE 'has Metadata Extension',
+                   role        TYPE /cadaxo/if_mds_api=>ty_ds_role VALUE /cadaxo/if_mds_api=>ds_role-parent,
+                 END OF metaextension,
                END OF relation_cust.
 
     CLASS-DATA instances TYPE ty_instances.
