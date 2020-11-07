@@ -189,7 +189,7 @@ CLASS /cadaxo/cl_mds_api_ds IMPLEMENTATION.
         /cadaxo/if_mds_api_datasource~header-field_search-search_object_name = me->/cadaxo/if_mds_api_datasource~header-name.
       ENDIF.
 
-      IF <field>-origin_field_name IS NOT INITIAL and <field>-origin_appendstru_name IS NOT INITIAL.
+      IF <field>-origin_field_name IS NOT INITIAL AND <field>-origin_appendstru_name IS NOT INITIAL.
         /cadaxo/if_mds_api_datasource~header-field_search-base_field_name = <field>-origin_field_name.
       ELSEIF <field>-base_field_name IS NOT INITIAL.
         /cadaxo/if_mds_api_datasource~header-field_search-base_field_name = <field>-base_field_name.
