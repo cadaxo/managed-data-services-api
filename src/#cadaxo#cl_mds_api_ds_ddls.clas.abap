@@ -295,8 +295,15 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD /cadaxo/if_mds_api_datasource~get_action_links.
+
+    r_links_action = super->/cadaxo/if_mds_api_datasource~get_action_links( ).
+
     r_links_action-display = |/sap/bc/adt/ddic/ddl/sources/{ me->/cadaxo/if_mds_api_datasource~header-name }/source/main?version=active&sap-client={ sy-mandt }|.
-    r_links_action-edit = |adt://{ sy-sysid }/sap/bc/adt/ddic/ddl/sources/{ me->/cadaxo/if_mds_api_datasource~header-name }|.
+
+    IF r_links_action IS INITIAL.
+      r_links_action-edit = |adt://{ sy-sysid }/sap/bc/adt/ddic/ddl/sources/{ me->/cadaxo/if_mds_api_datasource~header-name }|.
+    ENDIF.
+
   ENDMETHOD.
 
 

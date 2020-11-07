@@ -96,8 +96,13 @@ CLASS /cadaxo/cl_mds_api_ds_tabl IMPLEMENTATION.
 
   METHOD /cadaxo/if_mds_api_datasource~get_action_links.
 
+    r_links_action = super->/cadaxo/if_mds_api_datasource~get_action_links( ).
+
     r_links_action-display = |/sap/bc/adt/ddic/structures/{ me->/cadaxo/if_mds_api_datasource~header-name }/source/main?version=active&sap-client={ sy-mandt }|.
-    r_links_action-edit = |adt://{ sy-sysid }/sap/bc/adt/vit/wb/object_type/tabldt/object_name/{ me->/cadaxo/if_mds_api_datasource~header-name }|.
+
+    IF r_links_action-edit IS INITIAL.
+      r_links_action-edit = |adt://{ sy-sysid }/sap/bc/adt/vit/wb/object_type/tabldt/object_name/{ me->/cadaxo/if_mds_api_datasource~header-name }|.
+    ENDIF.
 
   ENDMETHOD.
 
