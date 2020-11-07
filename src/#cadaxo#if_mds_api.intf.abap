@@ -8,27 +8,41 @@ INTERFACE /cadaxo/if_mds_api
          ty_fields TYPE STANDARD TABLE OF ty_field WITH DEFAULT KEY.
 
   TYPES: BEGIN OF ty_annotation.
-      INCLUDE TYPE /cadaxo/mds_an_semkey AS semkey.
+  INCLUDE TYPE /cadaxo/mds_an_semkey AS semkey.
   TYPES:
     annotation_id TYPE /cadaxo/mds_annotation_id,
     position      TYPE int4,
     value         TYPE char100,
-    object_state  TYPE int4,
+    object_state  TYPE /cadaxo/mds_object_state,
     END OF ty_annotation,
     ty_annotations TYPE STANDARD TABLE OF ty_annotation WITH DEFAULT KEY.
 
   TYPES: BEGIN OF ty_parameter.
-      INCLUDE TYPE /cadaxo/mds_pr_semkey AS semkey.
+  INCLUDE TYPE /cadaxo/mds_pr_semkey AS semkey.
   TYPES:
     parameter_id TYPE /cadaxo/mds_parameter_id,
     position     TYPE int4,
-    value        TYPE char100,
-    object_state TYPE int4,
+    description  TYPE /cadaxo/mds_description,
+    object_state TYPE /cadaxo/mds_object_state,
+    datatype     TYPE datatype_d,
+    length       TYPE ddleng,
+    decimals     TYPE decimals,
+    data_element TYPE rollname,
     END OF ty_parameter,
     ty_parameters TYPE STANDARD TABLE OF ty_parameter WITH DEFAULT KEY.
 
+  TYPES: BEGIN OF ty_property.
+  INCLUDE TYPE /cadaxo/mds_py_semkey AS semkey.
+  TYPES:
+    property_id  TYPE /cadaxo/mds_property_id,
+    position     TYPE int4,
+    description  TYPE /cadaxo/mds_description,
+    object_state TYPE /cadaxo/mds_object_state,
+    END OF ty_property,
+    ty_properties TYPE STANDARD TABLE OF ty_property WITH DEFAULT KEY.
+
   TYPES: BEGIN OF ty_relation.
-      INCLUDE TYPE /cadaxo/mds_lk_semkey AS semkey.
+  INCLUDE TYPE /cadaxo/mds_lk_semkey AS semkey.
   TYPES:
     link_id       TYPE /cadaxo/mds_link_id,
     relation_type TYPE string,
@@ -39,14 +53,8 @@ INTERFACE /cadaxo/if_mds_api
     END OF ty_relation,
     ty_relations TYPE STANDARD TABLE OF ty_relation WITH DEFAULT KEY.
 
-*  TYPES: BEGIN OF ty_field_source_ds,
-*           search_object_name TYPE /cadaxo/mds_object_name,
-*           search_field_name  TYPE fieldname,
-*           base_object_name   TYPE vibastab,
-*           base_field_name    TYPE vibasfld,
-*         END OF ty_field_source_ds.
   TYPES: BEGIN OF ty_datasource.
-      INCLUDE TYPE /cadaxo/mds_ds_semkey AS semkey.
+  INCLUDE TYPE /cadaxo/mds_ds_semkey AS semkey.
   TYPES:
     ds_id       TYPE /cadaxo/mds_ds_id,
     changed_by  TYPE as4user,
@@ -54,7 +62,7 @@ INTERFACE /cadaxo/if_mds_api
     description TYPE as4text,
     sqlviewname TYPE tabname,
     cs_name     TYPE /cadaxo/mds_object_name.
-      INCLUDE TYPE /cadaxo/mds_field_search AS field_search.
+  INCLUDE TYPE /cadaxo/mds_field_search AS field_search.
   TYPES:
     depth TYPE i,
     role  TYPE int4,
@@ -100,8 +108,12 @@ INTERFACE /cadaxo/if_mds_api
                                RETURNING VALUE(r_annotation) TYPE ty_annotation.
   METHODS get_parameters_by_dsid IMPORTING i_ds_id             TYPE /cadaxo/mds_ds_id
                                  RETURNING VALUE(r_parameters) TYPE ty_parameters.
-  METHODS get_parameters_by_fieldid IMPORTING i_field_id          TYPE /cadaxo/mds_field_id
-                                    RETURNING VALUE(r_parameters) TYPE ty_parameters.
   METHODS get_parameter_by_id IMPORTING i_parameter_id     TYPE /cadaxo/mds_parameter_id
                               RETURNING VALUE(r_parameter) TYPE ty_parameter.
+  METHODS get_properties_by_dsid IMPORTING i_ds_id             TYPE /cadaxo/mds_ds_id
+                                 RETURNING VALUE(r_properties) TYPE ty_properties.
+  METHODS get_properties_by_fieldid IMPORTING i_field_id          TYPE /cadaxo/mds_field_id
+                                    RETURNING VALUE(r_properties) TYPE ty_properties.
+  METHODS get_property_by_id IMPORTING i_property_id     TYPE /cadaxo/mds_property_id
+                             RETURNING VALUE(r_property) TYPE ty_property.
 ENDINTERFACE.

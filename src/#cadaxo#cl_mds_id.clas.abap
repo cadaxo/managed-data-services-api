@@ -12,6 +12,12 @@ CLASS /cadaxo/cl_mds_id DEFINITION
     METHODS get_link_semkey IMPORTING i_link_id             TYPE /cadaxo/mds_link_id
                             RETURNING VALUE(r_semantic_key) TYPE /cadaxo/mds_lk_semkey
                             RAISING   /cadaxo/cx_mds_id.
+    METHODS get_parameter_semkey IMPORTING i_parameter_id        TYPE /cadaxo/mds_parameter_id
+                                 RETURNING VALUE(r_semantic_key) TYPE /cadaxo/mds_pr_semkey
+                                 RAISING   /cadaxo/cx_mds_id.
+    METHODS get_property_semkey IMPORTING i_property_id         TYPE /cadaxo/mds_property_id
+                                RETURNING VALUE(r_semantic_key) TYPE /cadaxo/mds_py_semkey
+                                RAISING   /cadaxo/cx_mds_id.
     CLASS-METHODS class_constructor.
 
     METHODS build_hash IMPORTING i_semkey           TYPE any
@@ -23,6 +29,8 @@ CLASS /cadaxo/cl_mds_id DEFINITION
 
     DATA datasource_buffers TYPE SORTED TABLE OF /cadaxo/mds_ds WITH UNIQUE KEY ds_id.
     DATA link_buffers TYPE SORTED TABLE OF /cadaxo/mds_lk WITH UNIQUE KEY link_id.
+    DATA parameter_buffers TYPE SORTED TABLE OF /cadaxo/mds_pr WITH UNIQUE KEY parameter_id.
+    DATA property_buffers TYPE SORTED TABLE OF /cadaxo/mds_py WITH UNIQUE KEY property_id.
 
     METHODS string_to_xstring IMPORTING i_semkey_string         TYPE string
                               RETURNING VALUE(r_semkey_xstring) TYPE xstring.
@@ -33,6 +41,10 @@ CLASS /cadaxo/cl_mds_id DEFINITION
                                     i_semantic_key TYPE /cadaxo/mds_ds_semkey.
     METHODS set_link_buffer IMPORTING i_link_id      TYPE /cadaxo/mds_link_id
                                       i_semantic_key TYPE /cadaxo/mds_lk_semkey.
+    METHODS set_parameter_buffer IMPORTING i_parameter_id TYPE /cadaxo/mds_parameter_id
+                                           i_semantic_key TYPE /cadaxo/mds_pr_semkey.
+    METHODS set_property_buffer IMPORTING i_property_id  TYPE /cadaxo/mds_property_id
+                                          i_semantic_key TYPE /cadaxo/mds_py_semkey.
 ENDCLASS.
 
 
@@ -69,8 +81,6 @@ CLASS /cadaxo/cl_mds_id IMPLEMENTATION.
     INSERT VALUE #( link_id = i_link_id semkey = i_semantic_key ) INTO TABLE link_buffers.
 
   ENDMETHOD.
-
-
 
 
   METHOD get_instance.
@@ -119,6 +129,7 @@ CLASS /cadaxo/cl_mds_id IMPLEMENTATION.
       WHEN '/CADAXO/MDS_FD_SEMKEY'.
       WHEN '/CADAXO/MDS_AN_SEMKEY'.
       WHEN '/CADAXO/MDS_PR_SEMKEY'.
+      WHEN '/CADAXO/MDS_PY_SEMKEY'.
       WHEN OTHERS.
         r_supported = abap_false..
         MESSAGE '' TYPE 'X'.
@@ -209,6 +220,56 @@ CLASS /cadaxo/cl_mds_id IMPLEMENTATION.
             cx_sy_conversion_codepage
             cx_parameter_invalid_type.
     ENDTRY.
+
+  ENDMETHOD.
+
+  METHOD get_parameter_semkey.
+
+    IF line_exists( parameter_buffers[ parameter_id = i_parameter_id ] ).
+      r_semantic_key = parameter_buffers[ parameter_id = i_parameter_id ]-semkey.
+    ELSE.
+      SELECT SINGLE ds_id, parameter_name
+             FROM /cadaxo/mds_pr
+             WHERE parameter_id = @i_parameter_id
+             INTO @r_semantic_key.
+      IF sy-subrc <> 0.
+        RAISE EXCEPTION TYPE /cadaxo/cx_mds_id.
+      ENDIF.
+
+      set_parameter_buffer( i_parameter_id = i_parameter_id
+                            i_semantic_key = r_semantic_key ).
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD get_property_semkey.
+
+    IF line_exists( property_buffers[ property_id = i_property_id ] ).
+      r_semantic_key = property_buffers[ property_id = i_property_id ]-semkey.
+    ELSE.
+      SELECT SINGLE object_id, property_name
+             FROM /cadaxo/mds_py
+             WHERE property_id = @i_property_id
+             INTO @r_semantic_key.
+      IF sy-subrc <> 0.
+        RAISE EXCEPTION TYPE /cadaxo/cx_mds_id.
+      ENDIF.
+
+      set_property_buffer( i_property_id = i_property_id
+                            i_semantic_key = r_semantic_key ).
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD set_parameter_buffer.
+
+    INSERT VALUE #( parameter_id = i_parameter_id semkey = i_semantic_key ) INTO TABLE parameter_buffers.
+
+  ENDMETHOD.
+
+  METHOD set_property_buffer.
+
+    INSERT VALUE #( property_id = i_property_id semkey = i_semantic_key ) INTO TABLE property_buffers.
 
   ENDMETHOD.
 

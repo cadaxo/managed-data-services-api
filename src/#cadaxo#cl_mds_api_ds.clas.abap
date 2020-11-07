@@ -63,11 +63,10 @@ CLASS /cadaxo/cl_mds_api_ds DEFINITION
     CLASS-DATA instances TYPE ty_instances.
     CLASS-DATA id_handler TYPE REF TO /cadaxo/cl_mds_id.
 
-    DATA: ds_fields    TYPE ty_ds_fields.
-    DATA: related_read TYPE abap_bool.
+    DATA: ds_fields     TYPE ty_ds_fields.
+    DATA: related_read  TYPE abap_bool.
 
 ENDCLASS.
-
 
 
 CLASS /cadaxo/cl_mds_api_ds IMPLEMENTATION.
@@ -137,7 +136,9 @@ CLASS /cadaxo/cl_mds_api_ds IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD /cadaxo/if_mds_api_datasource~get_action_links.
-
+*      lr_object = cl_wb_object=>create_from_transport_key( p_object = 'DDLS' p_obj_name = CONV #( g_ddlname ) ).
+*      lr_adt_objref = cl_adt_tools_core_factory=>get_instance( )->get_uri_mapper( )->map_wb_object_to_objref( lr_object ).
+*      g_adt_link = |{ 'adt://' }{ to_lower( sy-sysid ) }{ lr_adt_objref->ref_data-uri }|.
   ENDMETHOD.
 
   METHOD /cadaxo/if_mds_api_datasource~set_role.
@@ -228,4 +229,12 @@ CLASS /cadaxo/cl_mds_api_ds IMPLEMENTATION.
     ENDIF.
     r_field_source_ds = /cadaxo/if_mds_api_datasource~header-field_search.
   ENDMETHOD.
+
+  METHOD /cadaxo/if_mds_api_datasource~get_properties.
+
+      APPEND VALUE #( property_id = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_py_semkey( object_id     = me->/cadaxo/if_mds_api_datasource~header-ds_id
+                                                                                                      property_name = 'DSID' ) )
+                      object_id   = me->/cadaxo/if_mds_api_datasource~header-ds_id ) TO r_properties.
+  ENDMETHOD.
+
 ENDCLASS.

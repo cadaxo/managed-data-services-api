@@ -240,7 +240,6 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
   METHOD /cadaxo/if_mds_api~get_link_by_id.
 
-
     DATA(links) = /cadaxo/if_mds_api~get_links_by_dsid( id_handler->get_link_semkey( i_link_id )-object_id1 ).
 
     r_link = links[ link_id = i_link_id ].
@@ -259,12 +258,11 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
   ENDMETHOD.
 
 
-  METHOD /cadaxo/if_mds_api~get_parameters_by_fieldid.
-
-  ENDMETHOD.
-
-
   METHOD /cadaxo/if_mds_api~get_parameter_by_id.
+
+    DATA(parameters) = /cadaxo/if_mds_api~get_parameters_by_dsid( id_handler->get_parameter_semkey( i_parameter_id )-ds_id ).
+
+    r_parameter = parameters[ parameter_id = i_parameter_id ].
 
   ENDMETHOD.
 
@@ -299,6 +297,16 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD /cadaxo/if_mds_api~get_properties_by_dsid.
 
+  ENDMETHOD.
+
+  METHOD /cadaxo/if_mds_api~get_properties_by_fieldid.
+
+  ENDMETHOD.
+
+  METHOD /cadaxo/if_mds_api~get_property_by_id.
+
+  ENDMETHOD.
 
 ENDCLASS.

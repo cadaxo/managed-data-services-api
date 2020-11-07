@@ -82,26 +82,26 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
 
 
 * get extensions
-        SELECT header~ddlxname
-               FROM ddlx_rt_header AS header
-               INNER JOIN ddlxsrc AS source
-                ON  source~uuid     = header~dt_uuid
-                AND source~ddlxname = header~ddlxname
-            INTO TABLE @DATA(metadataextensions)
-            WHERE header~extended_artifact = @me->/cadaxo/if_mds_api_datasource~header-name
-              AND source~version           = @version-active.
-
-        LOOP AT metadataextensions ASSIGNING FIELD-SYMBOL(<extension>).
-
-          APPEND VALUE #( link_id       = 'GET_ID'
-                          object_id1    = me->/cadaxo/if_mds_api_datasource~header-ds_id
-                          object_id2    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey(  type = /cadaxo/if_mds_api_datasource~type-metadataextension
-                                                                                                             name = <extension>-ddlxname ) )
-                          card_min      = 1
-                          card_max      = 1
-                          description   = relation_cust-enhancement-description
-                          relation_type = relation_cust-enhancement-type ) TO me->/cadaxo/if_mds_api_datasource~relations.
-        ENDLOOP.
+*        SELECT header~ddlxname
+*               FROM ddlx_rt_header AS header
+*               INNER JOIN ddlxsrc AS source
+*                ON  source~uuid     = header~dt_uuid
+*                AND source~ddlxname = header~ddlxname
+*            INTO TABLE @DATA(metadataextensions)
+*            WHERE header~extended_artifact = @me->/cadaxo/if_mds_api_datasource~header-name
+*              AND source~version           = @version-active.
+*
+*        LOOP AT metadataextensions ASSIGNING FIELD-SYMBOL(<extension>).
+*
+*          APPEND VALUE #( link_id       = 'GET_ID'
+*                          object_id1    = me->/cadaxo/if_mds_api_datasource~header-ds_id
+*                          object_id2    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey(  type = /cadaxo/if_mds_api_datasource~type-metadataextension
+*                                                                                                             name = <extension>-ddlxname ) )
+*                          card_min      = 1
+*                          card_max      = 1
+*                          description   = relation_cust-enhancement-description
+*                          relation_type = relation_cust-enhancement-type ) TO me->/cadaxo/if_mds_api_datasource~relations.
+*        ENDLOOP.
 
 * get enhancements
         SELECT *
@@ -171,7 +171,7 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
          FROM ddheadanno
          WHERE strucobjn = @me->/cadaxo/if_mds_api_datasource~header-name
          ORDER BY position
-         INTO TABLE @DATA(annotations).
+         into table @DATA(annotations).
 
     LOOP AT annotations ASSIGNING FIELD-SYMBOL(<annotation>).
       APPEND VALUE #( annotation_id    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_an_semkey( object_id  = me->/cadaxo/if_mds_api_datasource~header-ds_id
@@ -186,7 +186,7 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
            FROM ddfieldanno
            WHERE strucobjn = @me->/cadaxo/if_mds_api_datasource~header-name
            ORDER BY position
-           INTO TABLE @DATA(field_annotations).
+           into table @DATA(field_annotations).
     LOOP AT field_annotations ASSIGNING FIELD-SYMBOL(<field_annotation>).
 
 
@@ -213,7 +213,7 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
            WHERE strucobjn = @me->/cadaxo/if_mds_api_datasource~header-name
              AND cdsfields~as4local  = @/cadaxo/cl_mds_api_ds=>version-active
            ORDER BY position
-           INTO TABLE @me->ds_fields.
+           into table @me->ds_fields.
 
     LOOP AT me->ds_fields ASSIGNING FIELD-SYMBOL(<ds_field>).
 
@@ -230,6 +230,30 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
 
 
   METHOD /cadaxo/if_mds_api_datasource~get_parameters.
+
+    SELECT cdsparameter~parametername AS parameter_name,
+           cdsparameter~posnr AS position,
+           cdsparameter~parametername_raw AS description,
+           cdsparameter~datatype,
+           cdsparameter~leng AS length,
+           cdsparameter~decimals,
+           cdsparameter~rollname AS data_element
+            FROM dd10b AS cdsparameter
+           WHERE cdsparameter~strucobjn = @me->/cadaxo/if_mds_api_datasource~header-name
+             AND cdsparameter~as4local  = @/cadaxo/cl_mds_api_ds=>version-active
+           ORDER BY position
+           into table @DATA(parameters).
+
+    LOOP AT parameters ASSIGNING FIELD-SYMBOL(<parameter>).
+
+      APPEND VALUE #( parameter_id = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_pr_semkey( ds_id          = me->/cadaxo/if_mds_api_datasource~header-ds_id
+                                                                                                       parameter_name = <parameter>-parameter_name ) )
+                     ds_id         = me->/cadaxo/if_mds_api_datasource~header-ds_id )
+                   TO r_parameters ASSIGNING FIELD-SYMBOL(<r_parameter>).
+
+      <r_parameter> = CORRESPONDING #( BASE ( <r_parameter> ) <parameter> ).
+
+    ENDLOOP.
 
   ENDMETHOD.
 

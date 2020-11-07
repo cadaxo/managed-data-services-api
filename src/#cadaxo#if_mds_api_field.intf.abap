@@ -9,6 +9,10 @@ INTERFACE /cadaxo/if_mds_api_field
            position        TYPE ddfdpos,
            description     TYPE string,
            object_state    TYPE int4,
+           datatype        TYPE datatype_d,
+           length          TYPE ddleng,
+           decimals        TYPE decimals,
+           data_element    TYPE rollname,
          END OF ty_data.
 
   TYPES: BEGIN OF ty_field.
