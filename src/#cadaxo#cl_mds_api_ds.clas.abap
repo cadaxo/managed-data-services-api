@@ -5,6 +5,7 @@ CLASS /cadaxo/cl_mds_api_ds DEFINITION
 
   PUBLIC SECTION.
     INTERFACES /cadaxo/if_mds_api_datasource.
+    ALIASES: relation_cust FOR /cadaxo/if_mds_api_datasource~relation_cust.
 
     CLASS-METHODS class_constructor.
     CLASS-METHODS get_instance IMPORTING i_ds_id           TYPE /cadaxo/mds_ds_id
@@ -33,34 +34,6 @@ CLASS /cadaxo/cl_mds_api_ds DEFINITION
     CONSTANTS: BEGIN OF version,
                  active TYPE as4local VALUE 'A',
                END OF version.
-
-    CONSTANTS: BEGIN OF relation_cust,
-                 BEGIN OF base,
-                   type        TYPE string VALUE 'BASE',
-                   description TYPE string VALUE 'as select from',
-                   role        TYPE /cadaxo/if_mds_api=>ty_ds_role VALUE /cadaxo/if_mds_api=>ds_role-parent,
-                 END OF base,
-                 BEGIN OF enhancement,
-                   type        TYPE string VALUE 'ENHANCEMENT',
-                   description TYPE string VALUE 'enhances',
-                   role        TYPE /cadaxo/if_mds_api=>ty_ds_role VALUE /cadaxo/if_mds_api=>ds_role-parent,
-                 END OF enhancement,
-                 BEGIN OF isused,
-                   type        TYPE string VALUE 'ISUSED',
-                   description TYPE string VALUE 'is used in',
-                   role        TYPE /cadaxo/if_mds_api=>ty_ds_role VALUE /cadaxo/if_mds_api=>ds_role-child,
-                 END OF isused,
-                 BEGIN OF sqlview,
-                   type        TYPE string VALUE 'SQLVIEW',
-                   description TYPE string VALUE 'has SQL View',
-                   role        TYPE /cadaxo/if_mds_api=>ty_ds_role VALUE /cadaxo/if_mds_api=>ds_role-parent,
-                 END OF sqlview,
-                 BEGIN OF metaextension,
-                   type        TYPE string VALUE 'METADATAEXTENSION',
-                   description TYPE string VALUE 'has Metadata Extension',
-                   role        TYPE /cadaxo/if_mds_api=>ty_ds_role VALUE /cadaxo/if_mds_api=>ds_role-parent,
-                 END OF metaextension,
-               END OF relation_cust.
 
     CLASS-DATA instances TYPE ty_instances.
     CLASS-DATA id_handler TYPE REF TO /cadaxo/cl_mds_id.
@@ -140,8 +113,12 @@ CLASS /cadaxo/cl_mds_api_ds IMPLEMENTATION.
   METHOD /cadaxo/if_mds_api_datasource~get_action_links.
 
     TRY.
-        DATA(wb_object) = cl_wb_object=>create_from_transport_key( p_object   = me->/cadaxo/if_mds_api_datasource~header-type
-                                                                   p_obj_name = CONV #( me->/cadaxo/if_mds_api_datasource~header-name ) ).
+
+        DATA(wb_object) = cl_wb_object=>create_from_transport_key( p_object   = SWITCH #( me->/cadaxo/if_mds_api_datasource~header-type
+                                                                                          WHEN 'YABL' THEN 'TABL'
+                                                                                          WHEN 'YDLS' THEN 'DDLS'
+                                                                                          ELSE me->/cadaxo/if_mds_api_datasource~header-type )
+                                                                           p_obj_name = CONV #( me->/cadaxo/if_mds_api_datasource~header-name ) ).
         DATA(adt_objref) = cl_adt_tools_core_factory=>get_instance( )->get_uri_mapper( )->map_wb_object_to_objref( wb_object ).
         r_links_action-edit = |{ 'adt://' }{ to_lower( sy-sysid ) }{ adt_objref->ref_data-uri }|.
 

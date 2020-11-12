@@ -65,7 +65,7 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
 
           APPEND VALUE #( link_id       = 'GET_ID'
                           object_id1    = me->/cadaxo/if_mds_api_datasource~header-ds_id
-                          object_id2    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey( type = /cadaxo/if_mds_api_datasource~type-datadefinition
+                          object_id2    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey( type = /cadaxo/if_mds_api_datasource~type-enhancment
                                                                                                             name = <stob_append_header>-strucobjn ) )
                           card_min      = 1
                           card_max      = 1
@@ -301,7 +301,7 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
       MESSAGE '' TYPE 'X'.
     ENDIF.
 
-    DATA(sqlview_object_id) = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey(  type = /cadaxo/if_mds_api_datasource~type-table
+    DATA(sqlview_object_id) = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey(  type = /cadaxo/if_mds_api_datasource~type-sqlview
                                                                                                  name = me->/cadaxo/if_mds_api_datasource~header-sqlviewname ) ).
 
     APPEND VALUE #( link_id       = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_lk_semkey( object_id1 = me->/cadaxo/if_mds_api_datasource~header-ds_id
