@@ -74,18 +74,28 @@ CLASS /cadaxo/cl_mds_api_ds_tabl IMPLEMENTATION.
 
   METHOD /cadaxo/if_mds_api_datasource~get_fields.
 
-    SELECT fieldname AS field_name,
-           position
-           FROM dd03l
+    SELECT fields~fieldname AS field_name,
+           fields~position,
+           fields~datatype,
+           fields~leng,
+           fields~decimals,
+           fields~rollname AS data_element
+           FROM dd03l AS fields
            WHERE tabname  = @me->/cadaxo/if_mds_api_datasource~header-name
              AND as4local = 'A'
            ORDER BY position
-           into table @me->ds_fields.
+           into table @DATA(fields).
 
-    LOOP AT me->ds_fields ASSIGNING FIELD-SYMBOL(<ds_field>) WHERE field_name NP '.INC*'.
+    me->ds_fields = CORRESPONDING #( fields ).
+
+    LOOP AT fields ASSIGNING FIELD-SYMBOL(<ds_field>) WHERE field_name NP '.INC*'.
+
+      DATA(field_data) = CORRESPONDING /cadaxo/if_mds_api_field=>ty_data( <ds_field> ).
+      field_data-length = |{ <ds_field>-leng ALPHA = OUT },{ <ds_field>-decimals ALPHA = OUT }|.
+
       DATA(field) = /cadaxo/cl_mds_api_field=>get_instance( i_field_id =  /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_fd_semkey( ds_id      = me->/cadaxo/if_mds_api_datasource~header-ds_id
                                                                                                                                             field_name = <ds_field>-field_name ) )
-                                                            i_data = CORRESPONDING #( <ds_field> ) ).
+                                                            i_data = field_data ).
 
       APPEND VALUE #( field_id = field->get_id( )
                       api      = field ) TO r_fields.

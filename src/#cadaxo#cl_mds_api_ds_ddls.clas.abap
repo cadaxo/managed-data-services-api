@@ -13,6 +13,7 @@ CLASS /cadaxo/cl_mds_api_ds_ddls DEFINITION INHERITING FROM /cadaxo/cl_mds_api_d
 
   PROTECTED SECTION.
     CLASS-DATA: metadata_extension_available TYPE abap_bool.
+  PRIVATE SECTION.
 ENDCLASS.
 
 
@@ -182,6 +183,19 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
   ENDMETHOD.
 
 
+  METHOD /cadaxo/if_mds_api_datasource~get_action_links.
+
+    r_links_action = super->/cadaxo/if_mds_api_datasource~get_action_links( ).
+
+    r_links_action-display = |/sap/bc/adt/ddic/ddl/sources/{ me->/cadaxo/if_mds_api_datasource~header-name }/source/main?version=active&sap-client={ sy-mandt }|.
+
+    IF r_links_action IS INITIAL.
+      r_links_action-edit = |adt://{ sy-sysid }/sap/bc/adt/ddic/ddl/sources/{ me->/cadaxo/if_mds_api_datasource~header-name }|.
+    ENDIF.
+
+  ENDMETHOD.
+
+
   METHOD /cadaxo/if_mds_api_datasource~get_annotations.
 
     SELECT name AS annotation, position, value
@@ -218,12 +232,17 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
 
+
   METHOD /cadaxo/if_mds_api_datasource~get_fields.
 
     SELECT cdsfields~fieldname AS field_name, cdsfields~fieldname_raw AS field_alias, cdsfields~position,
-           sqlviewfields~tabname AS base_tabable, sqlviewfields~fieldname AS base_field_name,
+           sqlviewfields~tabname AS base_table, sqlviewfields~fieldname AS base_field_name,
            cdsfields~fieldname AS origin_field_name,
-           cdsfields~appendstruname AS origin_append_stru_name
+           cdsfields~appendstruname AS origin_append_stru_name,
+           cdsfields~datatype,
+           cdsfields~leng,
+           cdsfields~decimals,
+           cdsfields~rollname AS data_element
            FROM dd03nd AS cdsfields
            INNER JOIN dd27s AS sqlviewfields
                  ON  sqlviewfields~viewfield = cdsfields~fieldname
@@ -232,13 +251,18 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
              AND sqlviewfields~viewname  = @me->/cadaxo/if_mds_api_datasource~header-sqlviewname
              AND cdsfields~as4local      = @/cadaxo/cl_mds_api_ds=>version-active
            ORDER BY position
-           into table @me->ds_fields.
+           into table @DATA(fields).
 
-    LOOP AT me->ds_fields ASSIGNING FIELD-SYMBOL(<ds_field>).
+    me->ds_fields = CORRESPONDING #( fields ).
+
+    LOOP AT fields ASSIGNING FIELD-SYMBOL(<ds_field>).
+
+      DATA(field_data) = CORRESPONDING /cadaxo/if_mds_api_field=>ty_data( <ds_field> ).
+      field_data-length = |{ <ds_field>-leng ALPHA = OUT },{ <ds_field>-decimals ALPHA = OUT }|.
 
       DATA(field) = /cadaxo/cl_mds_api_field=>get_instance( i_field_id =  /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_fd_semkey( ds_id      = me->/cadaxo/if_mds_api_datasource~header-ds_id
                                                                                                                                             field_name = <ds_field>-field_name ) )
-                                                            i_data = CORRESPONDING #( <ds_field> ) ).
+                                                            i_data = field_data ).
 
       APPEND VALUE #( field_id = field->get_id( )
                       api      = field ) TO r_fields.
@@ -273,6 +297,16 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
       <r_parameter> = CORRESPONDING #( BASE ( <r_parameter> ) <parameter> ).
 
     ENDLOOP.
+
+  ENDMETHOD.
+
+
+  METHOD class_constructor.
+
+    SELECT SINGLE @abap_true AS mte
+           FROM dd02l
+           WHERE tabname = 'DDLX_RT_HEADER'
+           INTO @DATA(metadata_extension_available).
 
   ENDMETHOD.
 
@@ -312,28 +346,4 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
                     relation_type = relation_cust-sqlview-type ) TO me->/cadaxo/if_mds_api_datasource~relations.
 
   ENDMETHOD.
-
-
-  METHOD /cadaxo/if_mds_api_datasource~get_action_links.
-
-    r_links_action = super->/cadaxo/if_mds_api_datasource~get_action_links( ).
-
-    r_links_action-display = |/sap/bc/adt/ddic/ddl/sources/{ me->/cadaxo/if_mds_api_datasource~header-name }/source/main?version=active&sap-client={ sy-mandt }|.
-
-    IF r_links_action IS INITIAL.
-      r_links_action-edit = |adt://{ sy-sysid }/sap/bc/adt/ddic/ddl/sources/{ me->/cadaxo/if_mds_api_datasource~header-name }|.
-    ENDIF.
-
-  ENDMETHOD.
-
-
-  METHOD class_constructor.
-
-    SELECT SINGLE @abap_true AS mte
-           FROM dd02l
-           WHERE tabname = 'DDLX_RT_HEADER'
-           INTO @DATA(metadata_extension_available).
-
-  ENDMETHOD.
-
 ENDCLASS.
