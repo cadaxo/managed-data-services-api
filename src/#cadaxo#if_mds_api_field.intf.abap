@@ -3,6 +3,7 @@ INTERFACE /cadaxo/if_mds_api_field
 
   TYPES: BEGIN OF ty_data,
            field_alias            TYPE fieldname,
+           is_key                 TYPE /cadaxo/mds_is_key,
            base_table             TYPE tabname,
            base_field_name        TYPE fieldname,
            origin_field_name      TYPE ddfldorigin,
@@ -14,6 +15,7 @@ INTERFACE /cadaxo/if_mds_api_field
            length                 TYPE ddleng,
            decimals               TYPE decimals,
            data_element           TYPE rollname,
+           length_string          TYPE string,
          END OF ty_data.
 
   TYPES: BEGIN OF ty_field.

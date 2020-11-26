@@ -238,6 +238,7 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
     SELECT cdsfields~fieldname AS field_name, cdsfields~fieldname_raw AS field_alias, cdsfields~position,
            sqlviewfields~tabname AS base_table, sqlviewfields~fieldname AS base_field_name,
            cdsfields~fieldname AS origin_field_name,
+           cdsfields~keyflag AS is_key,
            cdsfields~appendstruname AS origin_append_stru_name,
            cdsfields~datatype,
            cdsfields~leng,
@@ -253,12 +254,64 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
            ORDER BY position
            into table @DATA(fields).
 
+
+    SELECT texts~fieldname AS field_name,
+           texts~ddtext,
+           texts~reptext,
+           texts~scrtext_s,
+           texts~scrtext_m,
+           texts~scrtext_l,
+           texts~ddlanguage AS spras
+           FROM dd03m AS texts
+           WHERE tabname    = @me->/cadaxo/if_mds_api_datasource~header-sqlviewname
+             AND domstat    = @version-active
+             AND textstat   = @version-active
+             AND ( ddlanguage = @sy-langu OR ddlanguage = 'E' )
+           INTO TABLE @DATA(field_texts).
+
     me->ds_fields = CORRESPONDING #( fields ).
 
     LOOP AT fields ASSIGNING FIELD-SYMBOL(<ds_field>).
 
       DATA(field_data) = CORRESPONDING /cadaxo/if_mds_api_field=>ty_data( <ds_field> ).
-      field_data-length = |{ <ds_field>-leng ALPHA = OUT },{ <ds_field>-decimals ALPHA = OUT }|.
+      IF <ds_field>-decimals <> 0.
+        field_data-length_string = |{ <ds_field>-leng ALPHA = OUT },{ <ds_field>-decimals ALPHA = OUT }|.
+      ELSE.
+        field_data-length_string = |{ <ds_field>-leng ALPHA = OUT }|.
+      ENDIF.
+
+      IF line_exists( field_texts[ field_name = <ds_field>-field_name spras = sy-langu ] ).
+        ASSIGN field_texts[ field_name = <ds_field>-field_name spras = sy-langu ] TO FIELD-SYMBOL(<field_text>).
+      ELSEIF line_exists( field_texts[ field_name = <ds_field>-field_name spras = 'E' ] ).
+        ASSIGN field_texts[ field_name = <ds_field>-field_name spras = sy-langu ] TO <field_text>.
+      ELSE.
+        UNASSIGN <field_text>.
+      ENDIF.
+      IF <field_text> IS ASSIGNED.
+        IF     <field_text>-ddtext IS NOT INITIAL.
+          field_data-description = <field_text>-ddtext.
+        ELSEIF <field_text>-scrtext_l IS NOT INITIAL.
+          field_data-description = <field_text>-scrtext_l.
+        ELSEIF <field_text>-scrtext_m IS NOT INITIAL.
+          field_data-description = <field_text>-scrtext_m.
+        ELSEIF <field_text>-scrtext_s IS NOT INITIAL.
+          field_data-description = <field_text>-scrtext_s.
+        ELSEIF <field_text>-reptext   IS NOT INITIAL.
+          field_data-description = <field_text>-reptext.
+        ENDIF.
+
+        IF <field_text>-scrtext_l IS NOT INITIAL.
+          field_data-field_alias = <field_text>-scrtext_l.
+        ELSEIF <field_text>-scrtext_m IS NOT INITIAL.
+          field_data-field_alias = <field_text>-scrtext_m.
+        ELSEIF <field_text>-scrtext_s IS NOT INITIAL.
+          field_data-field_alias = <field_text>-scrtext_s.
+        ELSEIF <field_text>-ddtext IS NOT INITIAL.
+          field_data-field_alias = <field_text>-ddtext.
+        ELSEIF <field_text>-reptext   IS NOT INITIAL.
+          field_data-field_alias = <field_text>-reptext.
+        ENDIF.
+      ENDIF.
 
       DATA(field) = /cadaxo/cl_mds_api_field=>get_instance( i_field_id =  /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_fd_semkey( ds_id      = me->/cadaxo/if_mds_api_datasource~header-ds_id
                                                                                                                                             field_name = <ds_field>-field_name ) )
