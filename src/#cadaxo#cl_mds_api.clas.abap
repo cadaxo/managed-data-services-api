@@ -24,7 +24,9 @@ CLASS /cadaxo/cl_mds_api DEFINITION
     DATA: recursions TYPE ty_recusions.
 
     METHODS get_ds_reader IMPORTING i_ds_id            TYPE /cadaxo/mds_ds_id
-                          RETURNING VALUE(r_ds_reader) TYPE REF TO /cadaxo/if_mds_api_datasource.
+                          RETURNING VALUE(r_ds_reader) TYPE REF TO /cadaxo/if_mds_api_datasource
+                          RAISING
+                          /cadaxo/cx_mds_id.
     METHODS search_field IMPORTING is_role           LIKE /cadaxo/if_mds_api=>ds_role-child
                          CHANGING  c_field_source_ds TYPE /cadaxo/mds_field_search
                                    c_related_ds      TYPE /cadaxo/if_mds_api=>ty_datasource.

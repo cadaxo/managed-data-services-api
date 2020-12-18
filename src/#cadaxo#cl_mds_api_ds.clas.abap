@@ -9,7 +9,9 @@ CLASS /cadaxo/cl_mds_api_ds DEFINITION
 
     CLASS-METHODS class_constructor.
     CLASS-METHODS get_instance IMPORTING i_ds_id           TYPE /cadaxo/mds_ds_id
-                               RETURNING VALUE(e_instance) TYPE REF TO /cadaxo/if_mds_api_datasource.
+                               RETURNING VALUE(e_instance) TYPE REF TO /cadaxo/if_mds_api_datasource
+                               RAISING
+                                 /cadaxo/cx_mds_id.
     METHODS constructor IMPORTING i_sematic_key TYPE /cadaxo/mds_ds_semkey.
 
   PROTECTED SECTION.
@@ -220,10 +222,14 @@ CLASS /cadaxo/cl_mds_api_ds IMPLEMENTATION.
 
     IF NOT line_exists( instances[ ds_id = i_ds_id ] ).
 
+
       DATA(semkey) = id_handler->get_ds_semkey( i_ds_id ).
 
       DATA(ds_class_name) = '/CADAXO/CL_MDS_API_DS_' && semkey-type.
+
+
       CREATE OBJECT ds_instance TYPE (ds_class_name) EXPORTING i_sematic_key = semkey.
+
 
       IF instances IS INITIAL.
         ds_instance->set_role( /cadaxo/if_mds_api=>ds_role-main ).

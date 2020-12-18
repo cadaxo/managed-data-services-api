@@ -4,7 +4,10 @@ CLASS /cadaxo/cl_mds_api_ds_ddls DEFINITION INHERITING FROM /cadaxo/cl_mds_api_d
 
   PUBLIC SECTION.
     CLASS-METHODS class_constructor.
-    METHODS constructor IMPORTING i_sematic_key TYPE /cadaxo/mds_ds_semkey.
+    METHODS constructor IMPORTING i_sematic_key TYPE /cadaxo/mds_ds_semkey
+                        RAISING
+                          /iwbep/cx_mgw_busi_exception
+                          /cadaxo/cx_mds_id.
     METHODS /cadaxo/if_mds_api_datasource~build_related_entities REDEFINITION.
     METHODS /cadaxo/if_mds_api_datasource~get_fields REDEFINITION.
     METHODS /cadaxo/if_mds_api_datasource~get_parameters REDEFINITION.
@@ -374,7 +377,12 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
            WHERE head~strucobjn = @i_sematic_key-name
              AND head~as4local  = @version-active.
     IF sy-subrc <> 0.
-      MESSAGE '' TYPE 'X'.
+       RAISE EXCEPTION TYPE /cadaxo/cx_mds_id
+        EXPORTING textid = VALUE scx_t100key(
+                     msgid = '/CADAXO/MDS'
+                     msgno = '001'
+                     attr1 = i_sematic_key-name
+        ).
     ENDIF.
 
     DATA(sqlview_object_id) = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey(  type = /cadaxo/if_mds_api_datasource~type-sqlview

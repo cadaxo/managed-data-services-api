@@ -85,13 +85,16 @@ INTERFACE /cadaxo/if_mds_api
 
   METHODS get_datasources_by_semkey IMPORTING i_ds_semkey          TYPE /cadaxo/mds_ds_semkey
                                               i_fieldname_filter   TYPE fieldname OPTIONAL
-                                    RETURNING VALUE(r_datasources) TYPE ty_datasources.
+                                    RETURNING VALUE(r_datasources) TYPE ty_datasources
+                                    RAISING /cadaxo/cx_mds_id.
   METHODS get_datasources_by_id IMPORTING i_ds_id              TYPE /cadaxo/mds_ds_id
                                           i_as_role            TYPE ty_ds_role DEFAULT ds_role-main
                                           i_fieldname_filter   TYPE fieldname OPTIONAL
-                                RETURNING VALUE(r_datasources) TYPE ty_datasources.
+                                RETURNING VALUE(r_datasources) TYPE ty_datasources
+                                RAISING /cadaxo/cx_mds_id.
   METHODS get_datasource_by_id IMPORTING i_ds_id             TYPE /cadaxo/mds_ds_id
-                               RETURNING VALUE(r_datasource) TYPE ty_datasource.
+                               RETURNING VALUE(r_datasource) TYPE ty_datasource
+                               RAISING /cadaxo/cx_mds_id.
   METHODS get_links_by_dsid IMPORTING i_ds_id            TYPE /cadaxo/mds_ds_id
                             RETURNING VALUE(r_relations) TYPE ty_relations.
   METHODS get_link_by_id IMPORTING i_link_id     TYPE /cadaxo/mds_link_id
