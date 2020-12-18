@@ -5,9 +5,7 @@ CLASS /cadaxo/cl_mds_api_ds_ddls DEFINITION INHERITING FROM /cadaxo/cl_mds_api_d
   PUBLIC SECTION.
     CLASS-METHODS class_constructor.
     METHODS constructor IMPORTING i_sematic_key TYPE /cadaxo/mds_ds_semkey
-                        RAISING
-                          /iwbep/cx_mgw_busi_exception
-                          /cadaxo/cx_mds_id.
+                        RAISING   /cadaxo/cx_mds_id.
     METHODS /cadaxo/if_mds_api_datasource~build_related_entities REDEFINITION.
     METHODS /cadaxo/if_mds_api_datasource~get_fields REDEFINITION.
     METHODS /cadaxo/if_mds_api_datasource~get_parameters REDEFINITION.
@@ -21,7 +19,7 @@ ENDCLASS.
 
 
 
-CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
+CLASS /CADAXO/CL_MDS_API_DS_DDLS IMPLEMENTATION.
 
 
   METHOD /cadaxo/if_mds_api_datasource~build_related_entities.
@@ -122,15 +120,6 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
               WHERE (where_clause).
 
 
-*        SELECT HEADER~DDLXNAME
-*               FROM HEADER~DDLXNAME AS header
-*               INNER JOIN ddlxsrc AS source
-*                ON  source~uuid     = header~dt_uuid
-*                AND source~ddlxname = header~ddlxname
-*            INTO TABLE @DATA(metadataextensions)
-*            WHERE header~extended_artifact = @me->/cadaxo/if_mds_api_datasource~header-name
-*              AND source~version           = @version-active.
-
           LOOP AT metadataextensions ASSIGNING FIELD-SYMBOL(<extension>).
 
             APPEND VALUE #( link_id       = 'GET_ID'
@@ -205,7 +194,7 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
          FROM ddheadanno
          WHERE strucobjn = @me->/cadaxo/if_mds_api_datasource~header-name
          ORDER BY position
-         into table @DATA(annotations).
+         INTO TABLE @DATA(annotations).
 
     LOOP AT annotations ASSIGNING FIELD-SYMBOL(<annotation>).
       APPEND VALUE #( annotation_id    = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_an_semkey( object_id  = me->/cadaxo/if_mds_api_datasource~header-ds_id
@@ -220,7 +209,7 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
            FROM ddfieldanno
            WHERE strucobjn = @me->/cadaxo/if_mds_api_datasource~header-name
            ORDER BY position
-           into table @DATA(field_annotations).
+           INTO TABLE @DATA(field_annotations).
     LOOP AT field_annotations ASSIGNING FIELD-SYMBOL(<field_annotation>).
 
 
@@ -255,7 +244,7 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
              AND sqlviewfields~viewname  = @me->/cadaxo/if_mds_api_datasource~header-sqlviewname
              AND cdsfields~as4local      = @/cadaxo/cl_mds_api_ds=>version-active
            ORDER BY position
-           into table @DATA(fields).
+           INTO TABLE @DATA(fields).
 
 
     SELECT texts~fieldname AS field_name,
@@ -330,7 +319,7 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
            WHERE cdsparameter~strucobjn = @me->/cadaxo/if_mds_api_datasource~header-name
              AND cdsparameter~as4local  = @/cadaxo/cl_mds_api_ds=>version-active
            ORDER BY position
-           into table @DATA(parameters).
+           INTO TABLE @DATA(parameters).
 
     LOOP AT parameters ASSIGNING FIELD-SYMBOL(<parameter>).
 
@@ -377,12 +366,10 @@ CLASS /cadaxo/cl_mds_api_ds_ddls IMPLEMENTATION.
            WHERE head~strucobjn = @i_sematic_key-name
              AND head~as4local  = @version-active.
     IF sy-subrc <> 0.
-       RAISE EXCEPTION TYPE /cadaxo/cx_mds_id
-        EXPORTING textid = VALUE scx_t100key(
-                     msgid = '/CADAXO/MDS'
-                     msgno = '001'
-                     attr1 = i_sematic_key-name
-        ).
+      RAISE EXCEPTION TYPE /cadaxo/cx_mds_id
+        EXPORTING
+          textid     = /cadaxo/cx_mds_id=>ds_not_found
+          datasource = i_sematic_key-name.
     ENDIF.
 
     DATA(sqlview_object_id) = /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_ds_semkey(  type = /cadaxo/if_mds_api_datasource~type-sqlview

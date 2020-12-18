@@ -1,35 +1,48 @@
-CLASS /cadaxo/cx_mds_id DEFINITION
-  PUBLIC
-  INHERITING FROM cx_static_check
-  FINAL
-  CREATE PUBLIC .
+class /CADAXO/CX_MDS_ID definition
+  public
+  inheriting from CX_STATIC_CHECK
+  create public .
 
-  PUBLIC SECTION.
+public section.
 
-    INTERFACES if_t100_message .
+  interfaces IF_T100_MESSAGE .
 
-    METHODS constructor
-      IMPORTING
-        !textid   LIKE if_t100_message=>t100key OPTIONAL
-        !previous LIKE previous OPTIONAL .
+  constants:
+    begin of DS_NOT_FOUND,
+      msgid type symsgid value '/CADAXO/MDS',
+      msgno type symsgno value '001',
+      attr1 type scx_attrname value 'DATASOURCE',
+      attr2 type scx_attrname value '',
+      attr3 type scx_attrname value '',
+      attr4 type scx_attrname value '',
+    end of DS_NOT_FOUND .
+  data DATASOURCE type /CADAXO/MDS_OBJECT_NAME .
+
+  methods CONSTRUCTOR
+    importing
+      !TEXTID like IF_T100_MESSAGE=>T100KEY optional
+      !PREVIOUS like PREVIOUS optional
+      !DATASOURCE type /CADAXO/MDS_OBJECT_NAME optional .
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
 
 
 
-CLASS /cadaxo/cx_mds_id IMPLEMENTATION.
+CLASS /CADAXO/CX_MDS_ID IMPLEMENTATION.
 
 
-  METHOD constructor ##ADT_SUPPRESS_GENERATION.
-    CALL METHOD super->constructor
-      EXPORTING
-        previous = previous.
-    CLEAR me->textid.
-    IF textid IS INITIAL.
-      if_t100_message~t100key = if_t100_message=>default_textid.
-    ELSE.
-      if_t100_message~t100key = textid.
-    ENDIF.
-  ENDMETHOD.
+  method CONSTRUCTOR.
+CALL METHOD SUPER->CONSTRUCTOR
+EXPORTING
+PREVIOUS = PREVIOUS
+.
+me->DATASOURCE = DATASOURCE .
+clear me->textid.
+if textid is initial.
+  IF_T100_MESSAGE~T100KEY = IF_T100_MESSAGE=>DEFAULT_TEXTID.
+else.
+  IF_T100_MESSAGE~T100KEY = TEXTID.
+endif.
+  endmethod.
 ENDCLASS.

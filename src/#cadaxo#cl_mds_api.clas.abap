@@ -107,9 +107,9 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
     ENDIF.
 
-    IF  i_fieldname_filter IS NOT INITIAL.
+    IF  i_filter_fieldname IS NOT INITIAL.
 
-      DATA(field_source_ds) = ds_reader->has_field( VALUE #( search_field_name = i_fieldname_filter ) ).
+      DATA(field_source_ds) = ds_reader->has_field( VALUE #( search_field_name = i_filter_fieldname ) ).
       DATA(field_parent_source_ds) = field_source_ds.
       DATA(field_child_source_ds)  = field_source_ds.
 
@@ -123,7 +123,7 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
     LOOP AT relations ASSIGNING FIELD-SYMBOL(<relation>).
 
-      IF <relation>-relation_type = 'ISUSED'.
+      IF <relation>-relation_type = /cadaxo/if_mds_api_datasource=>relation_cust-isused-type.
         DATA(as_role) = /cadaxo/if_mds_api=>ds_role-child.
         ASSIGN field_child_source_ds TO FIELD-SYMBOL(<field_source_ds>).
       ELSE.
@@ -168,7 +168,7 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
     ELSEIF is_role = /cadaxo/if_mds_api=>ds_role-child.
       c_field_source_ds = VALUE #( BASE c_field_source_ds base_object_name = c_field_source_ds-search_object_name
-                                                                      base_field_name  = c_field_source_ds-search_field_name ).
+                                                          base_field_name  = c_field_source_ds-search_field_name ).
 
       field_source_related_ds = c_related_ds-api->uses_field( c_field_source_ds ).
     ENDIF.
@@ -190,8 +190,9 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
     DATA(id) = me->build_object_id( ds_semkey ).
 
-    r_datasources = me->/cadaxo/if_mds_api~get_datasources_by_id( i_ds_id            = id
-                                                                  i_fieldname_filter = i_fieldname_filter ).
+    r_datasources = me->/cadaxo/if_mds_api~get_datasources_by_id( i_ds_id             = id
+                                                                  i_filter_fieldname  = i_filter_fieldname
+                                                                  i_filter_datasource = i_filter_datasource ).
 
   ENDMETHOD.
 

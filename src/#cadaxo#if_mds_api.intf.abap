@@ -84,12 +84,14 @@ INTERFACE /cadaxo/if_mds_api
              END OF ds_role.
 
   METHODS get_datasources_by_semkey IMPORTING i_ds_semkey          TYPE /cadaxo/mds_ds_semkey
-                                              i_fieldname_filter   TYPE fieldname OPTIONAL
+                                              i_filter_fieldname   TYPE fieldname OPTIONAL
+                                              i_filter_datasource  TYPE /cadaxo/mds_object_name OPTIONAL
                                     RETURNING VALUE(r_datasources) TYPE ty_datasources
                                     RAISING /cadaxo/cx_mds_id.
   METHODS get_datasources_by_id IMPORTING i_ds_id              TYPE /cadaxo/mds_ds_id
                                           i_as_role            TYPE ty_ds_role DEFAULT ds_role-main
-                                          i_fieldname_filter   TYPE fieldname OPTIONAL
+                                          i_filter_fieldname   TYPE fieldname OPTIONAL
+                                          i_filter_datasource  TYPE /cadaxo/mds_object_name OPTIONAL
                                 RETURNING VALUE(r_datasources) TYPE ty_datasources
                                 RAISING /cadaxo/cx_mds_id.
   METHODS get_datasource_by_id IMPORTING i_ds_id             TYPE /cadaxo/mds_ds_id
