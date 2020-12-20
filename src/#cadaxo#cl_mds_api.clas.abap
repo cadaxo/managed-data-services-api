@@ -26,7 +26,7 @@ CLASS /cadaxo/cl_mds_api DEFINITION
     METHODS get_ds_reader IMPORTING i_ds_id            TYPE /cadaxo/mds_ds_id
                           RETURNING VALUE(r_ds_reader) TYPE REF TO /cadaxo/if_mds_api_datasource
                           RAISING
-                          /cadaxo/cx_mds_id.
+                                    /cadaxo/cx_mds_id.
     METHODS search_field IMPORTING is_role           LIKE /cadaxo/if_mds_api=>ds_role-child
                          CHANGING  c_field_source_ds TYPE /cadaxo/mds_field_search
                                    c_related_ds      TYPE /cadaxo/if_mds_api=>ty_datasource.
@@ -85,6 +85,7 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
 
   METHOD /cadaxo/if_mds_api~get_datasources_by_id.
+    FIELD-SYMBOLS: <search_link_ds> TYPE /cadaxo/if_mds_api=>ty_relation.
 
     DATA(ds_reader) = me->get_ds_reader( i_ds_id ).
     ds_reader->set_role( i_as_role ).
@@ -107,17 +108,7 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
     ENDIF.
 
-    IF  i_filter_fieldname IS NOT INITIAL.
-
-      DATA(field_source_ds) = ds_reader->has_field( VALUE #( search_field_name = i_filter_fieldname ) ).
-      DATA(field_parent_source_ds) = field_source_ds.
-      DATA(field_child_source_ds)  = field_source_ds.
-
-    ENDIF.
-
     APPEND ds_reader->get_datasource( ) TO r_datasources.
-
-    ds_reader->build_related_entities( ).
 
     DATA(relations) = ds_reader->get_relations( ).
 
@@ -125,10 +116,8 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
       IF <relation>-relation_type = /cadaxo/if_mds_api_datasource=>relation_cust-isused-type.
         DATA(as_role) = /cadaxo/if_mds_api=>ds_role-child.
-        ASSIGN field_child_source_ds TO FIELD-SYMBOL(<field_source_ds>).
       ELSE.
         as_role = /cadaxo/if_mds_api=>ds_role-parent.
-        ASSIGN field_parent_source_ds TO <field_source_ds>.
       ENDIF.
 
       DATA(related_dss) = /cadaxo/if_mds_api~get_datasources_by_id( i_ds_id   = <relation>-object_id2
@@ -138,13 +127,6 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
         IF NOT line_exists( r_datasources[ ds_id = <related_ds>-ds_id ] ).
 
-          IF <field_source_ds> IS NOT INITIAL.
-
-            me->search_field( EXPORTING is_role           = as_role
-                              CHANGING  c_field_source_ds = <field_source_ds>
-                                        c_related_ds      = <related_ds> ).
-          ENDIF.
-
           APPEND <related_ds> TO r_datasources.
 
         ENDIF.
@@ -152,6 +134,98 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
       ENDLOOP.
 
     ENDLOOP.
+
+**********************************************************************
+*LOOP AT relations ASSIGNING <relation>.
+*
+*      IF <relation>-relation_type = /cadaxo/if_mds_api_datasource=>relation_cust-isused-type.
+*        ASSIGN field_child_source_ds TO FIELD-SYMBOL(<field_source_ds>).
+*      ELSE.
+*        ASSIGN field_parent_source_ds TO <field_source_ds>.
+*      ENDIF.
+*
+*          IF <field_source_ds> IS NOT INITIAL.
+*
+*            me->search_field( EXPORTING is_role           = as_role
+*                              CHANGING  c_field_source_ds = <field_source_ds>
+*                                        c_related_ds      = <related_ds> ).
+*          ENDIF.
+*
+*    IF  i_filter_fieldname IS NOT INITIAL.
+*
+*      DATA(field_source_ds) = ds_reader->has_field( VALUE #( search_field_name = i_filter_fieldname ) ).
+*      DATA(field_parent_source_ds) = field_source_ds.
+*      DATA(field_child_source_ds)  = field_source_ds.
+*
+*    ENDIF.
+**********************************************************************
+    IF i_filter_fieldname IS NOT INITIAL.
+* /sap/opu/odata/CADAXO/MDS_SRV/Datasources?sap-client=010&$select=FieldSearch&search=ZCDX_I_PARTNER%7CDDLS&$filter=FieldSearch/SearchObjectName eq %27BUT000%27 and FieldSearch/SearchFieldName%20eq%20%27PARTNER%27
+* /sap/opu/odata/CADAXO/MDS_SRV/Datasources?sap-client=010&$select=FieldSearch,ObjectName&search=ZCDX_I_PARTNER%7CDDLS&$filter=FieldSearch/SearchObjectName eq %27ZCDX_I_PARTNER2%27 and FieldSearch/SearchFieldName%20eq%20%27PartnerNumber2%27
+
+*      ASSIGN r_datasources[ name = 'ZCDX_I_PARTNER2' ] TO FIELD-SYMBOL(<search_ds1>).
+*      ASSIGN r_datasources[ name = 'ZCDX_I_PARTNER' ] TO FIELD-SYMBOL(<search_ds2>).
+*      ASSIGN r_datasources[ name = 'ZCDXIPARTNERDB2' ] TO FIELD-SYMBOL(<search_ds3>).
+*      ASSIGN r_datasources[ name = 'ZCDXIPARTNERDB' ] TO FIELD-SYMBOL(<search_ds4>).
+*      DATA(fielda1) = <search_ds1>-api->get_fields( ).
+*      DATA(fielda2) = <search_ds2>-api->get_fields( ).
+*      DATA(fielda3) = <search_ds3>-api->get_fields( ).
+*      DATA(fielda4) = <search_ds4>-api->get_fields( ).
+
+      ASSIGN r_datasources[ name = i_filter_datasource ] TO FIELD-SYMBOL(<search_ds>).
+      IF sy-subrc = 0.
+
+        DATA(start_search_ds_field) = <search_ds>-api->has_field( VALUE #( search_object_name = i_filter_datasource search_field_name = i_filter_fieldname ) ).
+        DATA(search_direction) = 'down'.
+        DATA(search_field_ds) = start_search_ds_field.
+
+        DO.
+
+          IF search_field_ds-base_object_name = search_field_ds-search_object_name AND
+             search_field_ds-base_field_name  = search_field_ds-search_field_name.
+            IF search_direction = 'down'.
+              search_direction = 'up'.
+              search_field_ds = start_search_ds_field.
+              ASSIGN r_datasources[ name = search_field_ds-base_object_name ] TO <search_ds>.
+            ELSE.
+              EXIT. "DO
+            ENDIF.
+          ENDIF.
+
+          IF search_direction = 'down'.
+
+            search_field_ds-search_object_name = search_field_ds-base_object_name.
+            search_field_ds-search_field_name  = search_field_ds-base_field_name.
+
+            ASSIGN r_datasources[ sqlviewname = search_field_ds-base_object_name ] TO <search_ds>.
+            IF sy-subrc <> 0.
+              ASSIGN r_datasources[ name = search_field_ds-base_object_name ] TO <search_ds>.
+            ENDIF.
+            CLEAR search_field_ds-base_object_name.
+            CLEAR search_field_ds-base_field_name.
+
+            search_field_ds = <search_ds>-api->has_field( search_field_ds ).
+
+          ELSEIF search_direction = 'up'.
+
+            search_field_ds-base_object_name = search_field_ds-search_object_name.
+            search_field_ds-base_field_name  = search_field_ds-search_field_name.
+            CLEAR search_field_ds-search_object_name.
+            CLEAR search_field_ds-search_field_name.
+
+            DATA(search_relations) = <search_ds>-api->get_relations( ).
+            LOOP AT search_relations ASSIGNING FIELD-SYMBOL(<search_relation>) WHERE relation_type = /cadaxo/if_mds_api_datasource=>relation_cust-isused-type.
+              ASSIGN r_datasources[ ds_id = <search_relation>-object_id1 ] TO <search_ds>.
+              search_field_ds = <search_ds>-api->uses_field( search_field_ds ).
+            ENDLOOP.
+
+          ENDIF.
+
+        ENDDO.
+
+      ENDIF.
+
+    ENDIF.
 
     <recursion>-datasources = r_datasources.
 
