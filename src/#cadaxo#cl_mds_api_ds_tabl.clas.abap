@@ -132,7 +132,7 @@ CLASS /cadaxo/cl_mds_api_ds_tabl IMPLEMENTATION.
         ENDIF.
 
 * UI Shows only field_alias?!?
-        field_data-field_alias = field_data-base_field_name.
+        field_data-field_alias = <ds_field>-field_name.
 *        IF <field_text>-scrtext_l IS NOT INITIAL.
 *          field_data-field_alias = <field_text>-scrtext_l.
 *        ELSEIF <field_text>-scrtext_m IS NOT INITIAL.
