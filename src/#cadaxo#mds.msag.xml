@@ -4,8 +4,22 @@
   <asx:values>
    <T100A>
     <ARBGB>/CADAXO/MDS</ARBGB>
-    <MASTERLANG>D</MASTERLANG>
+    <MASTERLANG>E</MASTERLANG>
    </T100A>
+   <T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>/CADAXO/MDS</ARBGB>
+     <MSGNR>000</MSGNR>
+     <TEXT>&amp;1 &amp;1 &amp;1 &amp;1</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>/CADAXO/MDS</ARBGB>
+     <MSGNR>001</MSGNR>
+     <TEXT>&amp; not found. Select new object in Search App / check cadaxoMainNode</TEXT>
+    </T100>
+   </T100>
    <I18N_LANGS>
     <LANGU>D</LANGU>
    </I18N_LANGS>
