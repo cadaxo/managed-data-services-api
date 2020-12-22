@@ -84,7 +84,7 @@ CLASS /cadaxo/cl_mds_api_ds_tabl IMPLEMENTATION.
            WHERE tabname    = @me->/cadaxo/if_mds_api_datasource~header-name
              AND as4local   = @version-active
            ORDER BY position
-           into table @DATA(fields).
+           INTO TABLE @DATA(fields).
 
     SELECT texts~fieldname AS field_name,
            texts~ddtext,
@@ -131,17 +131,19 @@ CLASS /cadaxo/cl_mds_api_ds_tabl IMPLEMENTATION.
           field_data-description = <field_text>-reptext.
         ENDIF.
 
-        IF <field_text>-scrtext_l IS NOT INITIAL.
-          field_data-field_alias = <field_text>-scrtext_l.
-        ELSEIF <field_text>-scrtext_m IS NOT INITIAL.
-          field_data-field_alias = <field_text>-scrtext_m.
-        ELSEIF <field_text>-scrtext_s IS NOT INITIAL.
-          field_data-field_alias = <field_text>-scrtext_s.
-        ELSEIF <field_text>-ddtext IS NOT INITIAL.
-          field_data-field_alias = <field_text>-ddtext.
-        ELSEIF <field_text>-reptext   IS NOT INITIAL.
-          field_data-field_alias = <field_text>-reptext.
-        ENDIF.
+* UI Shows only field_alias?!?
+        field_data-field_alias = field_data-base_field_name.
+*        IF <field_text>-scrtext_l IS NOT INITIAL.
+*          field_data-field_alias = <field_text>-scrtext_l.
+*        ELSEIF <field_text>-scrtext_m IS NOT INITIAL.
+*          field_data-field_alias = <field_text>-scrtext_m.
+*        ELSEIF <field_text>-scrtext_s IS NOT INITIAL.
+*          field_data-field_alias = <field_text>-scrtext_s.
+*        ELSEIF <field_text>-ddtext IS NOT INITIAL.
+*          field_data-field_alias = <field_text>-ddtext.
+*        ELSEIF <field_text>-reptext   IS NOT INITIAL.
+*          field_data-field_alias = <field_text>-reptext.
+*        ENDIF.
       ENDIF.
 
       DATA(field) = /cadaxo/cl_mds_api_field=>get_instance( i_field_id =  /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_fd_semkey( ds_id      = me->/cadaxo/if_mds_api_datasource~header-ds_id
