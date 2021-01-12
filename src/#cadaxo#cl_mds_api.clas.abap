@@ -1,7 +1,6 @@
 CLASS /cadaxo/cl_mds_api DEFINITION
   PUBLIC
-  FINAL
-  CREATE PUBLIC .
+  CREATE PROTECTED.
 
   PUBLIC SECTION.
     INTERFACES /cadaxo/if_mds_api.
@@ -26,7 +25,7 @@ CLASS /cadaxo/cl_mds_api DEFINITION
     METHODS get_ds_reader IMPORTING i_ds_id            TYPE /cadaxo/mds_ds_id
                           RETURNING VALUE(r_ds_reader) TYPE REF TO /cadaxo/if_mds_api_datasource
                           RAISING
-                          /cadaxo/cx_mds_id.
+                                    /cadaxo/cx_mds_id.
     METHODS search_field IMPORTING is_role           LIKE /cadaxo/if_mds_api=>ds_role-child
                          CHANGING  c_field_source_ds TYPE /cadaxo/mds_field_search
                                    c_related_ds      TYPE /cadaxo/if_mds_api=>ty_datasource.
@@ -107,11 +106,20 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
     ENDIF.
 
-    IF  i_filter_fieldname IS NOT INITIAL.
+    IF i_filter_fieldname IS NOT INITIAL.
 
-      DATA(field_source_ds) = ds_reader->has_field( VALUE #( search_field_name = i_filter_fieldname ) ).
-      DATA(field_parent_source_ds) = field_source_ds.
-      DATA(field_child_source_ds)  = field_source_ds.
+      IF i_filter_datasource IS INITIAL OR i_filter_datasource = ds_name.
+
+        DATA(field_source_ds) = ds_reader->has_field( VALUE #( search_field_name = i_filter_fieldname ) ).
+        TYPES: ty_search_fields TYPE STANDARD TABLE OF /cadaxo/mds_field_search WITH DEFAULT KEY.
+        DATA(field_child_source_dss)  = VALUE ty_search_fields(  ).
+        DATA(field_parent_source_dss) = VALUE ty_search_fields(  ).
+
+      ELSE.
+
+        DATA(other_search_source) = abap_true.
+
+      ENDIF.
 
     ENDIF.
 
@@ -125,25 +133,45 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
       IF <relation>-relation_type = /cadaxo/if_mds_api_datasource=>relation_cust-isused-type.
         DATA(as_role) = /cadaxo/if_mds_api=>ds_role-child.
-        ASSIGN field_child_source_ds TO FIELD-SYMBOL(<field_source_ds>).
+        ASSIGN field_child_source_dss TO FIELD-SYMBOL(<field_source_dss>).
       ELSE.
         as_role = /cadaxo/if_mds_api=>ds_role-parent.
-        ASSIGN field_parent_source_ds TO <field_source_ds>.
+        ASSIGN field_parent_source_dss TO <field_source_dss>.
       ENDIF.
+
+      CLEAR <field_source_dss>.
+      IF field_source_ds IS NOT INITIAL.
+        APPEND field_source_ds TO <field_source_dss>.
+      ENDIF.
+
 
       DATA(related_dss) = /cadaxo/if_mds_api~get_datasources_by_id( i_ds_id   = <relation>-object_id2
                                                                     i_as_role = as_role ).
 
+*      IF lines( related_dss ) > 4.
+*        BREAK-POINT.
+*      ENDIF.
       LOOP AT related_dss ASSIGNING FIELD-SYMBOL(<related_ds>).
 
         IF NOT line_exists( r_datasources[ ds_id = <related_ds>-ds_id ] ).
 
-          IF <field_source_ds> IS NOT INITIAL.
-
+          LOOP AT <field_source_dss> ASSIGNING FIELD-SYMBOL(<field_source_ds>).
+            DATA(field_source) = <field_source_ds>.
             me->search_field( EXPORTING is_role           = as_role
-                              CHANGING  c_field_source_ds = <field_source_ds>
+                              CHANGING  c_field_source_ds = field_source
                                         c_related_ds      = <related_ds> ).
-          ENDIF.
+            IF field_source <> <field_source_ds> AND
+               field_source-search_object_name <> field_source-base_object_name AND
+               field_source-search_field_name  <> field_source-base_field_name.
+
+              IF as_role = /cadaxo/if_mds_api=>ds_role-child.
+                APPEND field_source TO <field_source_dss>.
+              ELSE.
+                <field_source_ds> = field_source.
+              ENDIF.
+              EXIT. "LOOP
+            ENDIF.
+          ENDLOOP.
 
           APPEND <related_ds> TO r_datasources.
 
@@ -152,6 +180,20 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
       ENDLOOP.
 
     ENDLOOP.
+
+    IF other_search_source = abap_true.
+      ASSIGN r_datasources[ name = i_filter_datasource ] TO FIELD-SYMBOL(<filter_datasource>).
+      IF sy-subrc = 0.
+        DATA(search_dss) = /cadaxo/cl_mds_search_api=>get_search_instance( )->get_datasources_by_semkey( i_ds_semkey        = VALUE #( name = <filter_datasource>-name type = <filter_datasource>-type )
+                                                                                                         i_filter_fieldname = i_filter_fieldname ).
+        LOOP AT r_datasources ASSIGNING FIELD-SYMBOL(<datasource>).
+          ASSIGN search_dss[ ds_id = <datasource>-ds_id ] TO FIELD-SYMBOL(<search_datasource>).
+          IF sy-subrc = 0.
+            <datasource>-field_search = <search_datasource>-field_search.
+          ENDIF.
+        ENDLOOP.
+      ENDIF.
+    ENDIF.
 
     <recursion>-datasources = r_datasources.
 
@@ -292,7 +334,7 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
   METHOD get_ds_reader.
 
-    r_ds_reader = /cadaxo/cl_mds_api_ds=>get_instance( i_ds_id ).
+    r_ds_reader = /cadaxo/cl_mds_api_ds=>get_ds_instance( i_ds_id ).
 
   ENDMETHOD.
 
@@ -306,6 +348,7 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
     e_api = instance.
 
   ENDMETHOD.
+
 
   METHOD /cadaxo/if_mds_api~get_properties_by_dsid.
 
