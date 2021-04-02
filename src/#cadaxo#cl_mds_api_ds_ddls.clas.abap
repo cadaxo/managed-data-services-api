@@ -235,7 +235,8 @@ CLASS /CADAXO/CL_MDS_API_DS_DDLS IMPLEMENTATION.
            cdsfields~datatype,
            cdsfields~leng,
            cdsfields~decimals,
-           cdsfields~rollname AS data_element
+           cdsfields~rollname AS data_element,
+           cdsfields~inttype
            FROM dd03nd AS cdsfields
            INNER JOIN dd27s AS sqlviewfields
                  ON  sqlviewfields~viewfield = cdsfields~fieldname
@@ -266,6 +267,11 @@ CLASS /CADAXO/CL_MDS_API_DS_DDLS IMPLEMENTATION.
     LOOP AT fields ASSIGNING FIELD-SYMBOL(<ds_field>).
 
       DATA(field_data) = CORRESPONDING /cadaxo/if_mds_api_field=>ty_data( <ds_field> ).
+
+      if <ds_field>-inttype is initial. "TODO - replace by new type
+        field_data-is_key = abap_true. "TODO - replace by new type
+      endif.
+
       IF <ds_field>-decimals <> 0.
         field_data-length_string = |{ <ds_field>-leng ALPHA = OUT },{ <ds_field>-decimals ALPHA = OUT }|.
       ELSE.
@@ -279,6 +285,7 @@ CLASS /CADAXO/CL_MDS_API_DS_DDLS IMPLEMENTATION.
       ELSE.
         UNASSIGN <field_text>.
       ENDIF.
+
       IF <field_text> IS ASSIGNED.
         IF     <field_text>-ddtext IS NOT INITIAL.
           field_data-description = <field_text>-ddtext.
@@ -297,6 +304,7 @@ CLASS /CADAXO/CL_MDS_API_DS_DDLS IMPLEMENTATION.
       DATA(field) = /cadaxo/cl_mds_api_field=>get_instance( i_field_id =  /cadaxo/cl_mds_api=>build_object_id( VALUE /cadaxo/mds_fd_semkey( ds_id      = me->/cadaxo/if_mds_api_datasource~header-ds_id
                                                                                                                                             field_name = <ds_field>-field_name ) )
                                                             i_data = field_data ).
+
 
       APPEND VALUE #( field_id = field->get_id( )
                       api      = field ) TO r_fields.

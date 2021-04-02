@@ -27,6 +27,7 @@ CLASS /cadaxo/cl_mds_api_ds DEFINITION
              origin_field_name      TYPE ddfieldname_l,
              origin_appendstru_name TYPE appname,
              datatype               TYPE datatype_d,
+             inttype                TYPE inttype,
              length                 TYPE /cadaxo/mds_datatype_length,
              data_element           TYPE rollname,
            END OF ty_ds_field,
@@ -47,13 +48,12 @@ CLASS /cadaxo/cl_mds_api_ds DEFINITION
 
     DATA: ds_fields     TYPE ty_ds_fields.
     DATA: related_read  TYPE abap_bool.
-
   PRIVATE SECTION.
 ENDCLASS.
 
 
 
-CLASS /cadaxo/cl_mds_api_ds IMPLEMENTATION.
+CLASS /CADAXO/CL_MDS_API_DS IMPLEMENTATION.
 
 
   METHOD /cadaxo/if_mds_api_datasource~build_related_entities.
@@ -217,6 +217,7 @@ CLASS /cadaxo/cl_mds_api_ds IMPLEMENTATION.
 
   ENDMETHOD.
 
+
   METHOD get_ds_instance.
 
     DATA: ds_instance TYPE REF TO /cadaxo/if_mds_api_datasource.
@@ -247,5 +248,4 @@ CLASS /cadaxo/cl_mds_api_ds IMPLEMENTATION.
     e_ds_instance = <instance>-instance.
 
   ENDMETHOD.
-
 ENDCLASS.

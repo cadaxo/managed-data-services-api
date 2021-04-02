@@ -160,9 +160,11 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
             me->search_field( EXPORTING is_role           = as_role
                               CHANGING  c_field_source_ds = field_source
                                         c_related_ds      = <related_ds> ).
-            IF field_source <> <field_source_ds> AND
-               field_source-search_object_name <> field_source-base_object_name AND
-               field_source-search_field_name  <> field_source-base_field_name.
+            IF  field_source <> <field_source_ds> AND
+              (
+               field_source-search_object_name <> field_source-base_object_name OR
+               field_source-search_field_name  <> field_source-base_field_name
+                ).
 
               IF as_role = /cadaxo/if_mds_api=>ds_role-child.
                 APPEND field_source TO <field_source_dss>.
