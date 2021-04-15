@@ -269,7 +269,7 @@ CLASS /CADAXO/CL_MDS_API_DS_DDLS IMPLEMENTATION.
       DATA(field_data) = CORRESPONDING /cadaxo/if_mds_api_field=>ty_data( <ds_field> ).
 
       if <ds_field>-inttype is initial. "TODO - replace by new type
-        field_data-is_key = abap_true. "TODO - replace by new type
+        field_data-is_inttype = abap_true. "TODO - replace by new type
       endif.
 
       IF <ds_field>-decimals <> 0.
