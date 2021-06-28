@@ -77,6 +77,18 @@ INTERFACE /cadaxo/if_mds_api
          END OF ty_action_link.
 
   TYPES: ty_ds_role TYPE i.
+
+  TYPES: BEGIN OF ty_dashboard.
+  TYPES:
+    object_type  TYPE /CADAXO/MDS_OBJECT_TYPE,
+    object_name  TYPE /CADAXO/MDS_OBJECT_NAME,
+    count  TYPE /CADAXO/MDS_OBJECT_COUNT,
+    total_count TYPE /CADAXO/MDS_OBJECT_COUNT,
+    END OF ty_dashboard,
+    ty_dashboard_t TYPE STANDARD TABLE OF ty_dashboard WITH DEFAULT KEY.
+
+
+
   CONSTANTS: BEGIN OF ds_role,
                main   TYPE /cadaxo/if_mds_api=>ty_ds_role VALUE 0,
                parent TYPE /cadaxo/if_mds_api=>ty_ds_role VALUE -1,
@@ -121,4 +133,8 @@ INTERFACE /cadaxo/if_mds_api
                                     RETURNING VALUE(r_properties) TYPE ty_properties.
   METHODS get_property_by_id IMPORTING i_property_id     TYPE /cadaxo/mds_property_id
                              RETURNING VALUE(r_property) TYPE ty_property.
+  METHODS get_dashboard_data IMPORTING i_custom_objects TYPE abap_bool
+                                       i_last_week_data TYPE abap_bool
+                             RETURNING VALUE(r_dashobard_data) TYPE ty_dashboard_t.
+
 ENDINTERFACE.
