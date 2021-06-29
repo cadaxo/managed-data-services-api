@@ -370,6 +370,8 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
     " Tables
     IF i_custom_objects = abap_true.
       DATA(lv_custom_objects) = |( tabname LIKE 'Z%' OR tabname LIKE 'Y%' )|.
+    ELSE.
+      lv_custom_objects = |( tabname NOT LIKE 'Z%' OR tabname NOT LIKE 'Y%' )|.
     ENDIF.
 
     IF i_last_week_data = abap_true.
@@ -388,6 +390,8 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
     CLEAR lv_custom_objects.
     IF i_custom_objects = abap_true.
       lv_custom_objects = |( strucobjn LIKE 'Z%' OR strucobjn LIKE 'Y%' )|.
+    ELSE.
+      lv_custom_objects = |( strucobjn NOT LIKE 'Z%' OR strucobjn NOT LIKE 'Y%' )|.
     ENDIF.
 
     CLEAR lv_last_week_data.
@@ -414,6 +418,8 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
     CLEAR lv_custom_objects.
     IF i_custom_objects = abap_true.
       lv_custom_objects = |( a~strucobjn LIKE 'Z%' OR a~strucobjn LIKE 'Y%' )|.
+    ELSE.
+      lv_custom_objects = |( a~strucobjn NOT LIKE 'Z%' OR a~strucobjn NOT LIKE 'Y%' )|.
     ENDIF.
 
     CLEAR lv_last_week_data.
