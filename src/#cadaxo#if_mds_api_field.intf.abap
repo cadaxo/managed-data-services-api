@@ -3,7 +3,9 @@ INTERFACE /cadaxo/if_mds_api_field
 
   TYPES: BEGIN OF ty_data,
            field_alias            TYPE fieldname,
+           "field_type             type /cadaxo/mds_field_type,
            is_key                 TYPE /cadaxo/mds_is_key,
+           is_inttype             TYPE /cadaxo/mds_is_inttype,
            base_table             TYPE tabname,
            base_field_name        TYPE fieldname,
            origin_field_name      TYPE ddfldorigin,

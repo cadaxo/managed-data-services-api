@@ -160,9 +160,11 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
             me->search_field( EXPORTING is_role           = as_role
                               CHANGING  c_field_source_ds = field_source
                                         c_related_ds      = <related_ds> ).
-            IF field_source <> <field_source_ds> AND
-               field_source-search_object_name <> field_source-base_object_name AND
-               field_source-search_field_name  <> field_source-base_field_name.
+            IF  field_source <> <field_source_ds> AND
+              (
+               field_source-search_object_name <> field_source-base_object_name OR
+               field_source-search_field_name  <> field_source-base_field_name
+                ).
 
               IF as_role = /cadaxo/if_mds_api=>ds_role-child.
                 APPEND field_source TO <field_source_dss>.
@@ -360,6 +362,86 @@ CLASS /cadaxo/cl_mds_api IMPLEMENTATION.
 
   METHOD /cadaxo/if_mds_api~get_property_by_id.
 
+  ENDMETHOD.
+
+  METHOD /cadaxo/if_mds_api~get_dashboard_data.
+    DATA lv_sum TYPE i.
+
+    " Tables
+    IF i_custom_objects = abap_true.
+      DATA(lv_custom_objects) = |( tabname LIKE 'Z%' OR tabname LIKE 'Y%' )|.
+    ELSE.
+      lv_custom_objects = |( tabname NOT LIKE 'Z%' AND tabname NOT LIKE 'Y%' )|.
+    ENDIF.
+
+    IF i_last_week_data = abap_true.
+      DATA(lv_last_week) = sy-datum - 7.
+      DATA(lv_last_week_data) = |AS4DATE >= @lv_last_week|.
+    ENDIF.
+
+    SELECT COUNT( * ) FROM DD02L WHERE
+        TABCLASS = 'TRANSP'
+        AND (lv_custom_objects)
+        AND (lv_last_week_data) INTO @DATA(lv_tables_count).
+
+    lv_sum = lv_sum + lv_tables_count.
+
+    "CDS Views
+    CLEAR lv_custom_objects.
+    IF i_custom_objects = abap_true.
+      lv_custom_objects = |( strucobjn LIKE 'Z%' OR strucobjn LIKE 'Y%' )|.
+    ELSE.
+      lv_custom_objects = |( strucobjn NOT LIKE 'Z%' AND strucobjn NOT LIKE 'Y%' )|.
+    ENDIF.
+
+    CLEAR lv_last_week_data.
+    IF i_last_week_data = abap_true.
+      lv_last_week_data = |chgdate >= @lv_last_week|.
+    ENDIF.
+
+    SELECT COUNT( * ) FROM dd02b WHERE
+        strucobjclass = @space
+        AND (lv_custom_objects)
+        AND (lv_last_week_data) INTO @DATA(lv_cds_views_count).
+
+    lv_sum = lv_sum + lv_cds_views_count.
+
+    "CDS Views Extensions
+    SELECT COUNT( * ) FROM dd02b WHERE
+        strucobjclass = 'APPEND'
+        AND (lv_custom_objects)
+        AND (lv_last_week_data) INTO @DATA(lv_cds_ext_count).
+
+    lv_sum = lv_sum + lv_cds_ext_count.
+
+    "SQL Views
+    CLEAR lv_custom_objects.
+    IF i_custom_objects = abap_true.
+      lv_custom_objects = |( a~strucobjn LIKE 'Z%' OR a~strucobjn LIKE 'Y%' )|.
+    ELSE.
+      lv_custom_objects = |( a~strucobjn NOT LIKE 'Z%' AND a~strucobjn NOT LIKE 'Y%' )|.
+    ENDIF.
+
+    CLEAR lv_last_week_data.
+    IF i_last_week_data = abap_true.
+      lv_last_week_data = |b~AS4DATE >= @lv_last_week|.
+    ENDIF.
+
+    SELECT COUNT( * ) FROM DD02BND as a
+     INNER JOIN dd02l as b ON a~dbtabname = b~tabname
+     WHERE
+        dbobjkind = 'VIEW'
+        AND (lv_custom_objects)
+        AND (lv_last_week_data) INTO @DATA(lv_sql_views_count).
+
+    lv_sum = lv_sum + lv_sql_views_count.
+
+      r_dashobard_data = VALUE #(
+    ( object_name = 'Database Tables' object_type = 'TABL'   count = lv_tables_count total_count = lv_sum )
+    ( object_name = 'CDS Views' object_type = 'DDLS'   count = lv_cds_views_count total_count = lv_sum )
+    ( object_name = 'CDS View Extenstions' object_type = 'DDLX'   count = lv_cds_ext_count total_count = lv_sum )
+    ( object_name = 'SQL Views' object_type = 'DDLX'   count = lv_sql_views_count total_count = lv_sum )
+   ).
   ENDMETHOD.
 
 ENDCLASS.
